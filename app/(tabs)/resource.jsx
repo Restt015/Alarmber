@@ -3,38 +3,20 @@ import React, { useState } from 'react';
 import { Linking, ScrollView, View } from 'react-native';
 import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
 
-// Componente SectionTitle
-const SectionTitle = ({ title }: { title: string }) => {
+const SectionTitle = ({ title }) => {
   return (
     <View className="px-5 mt-2.5 mb-4">
-      <Text variant="titleLarge" className="font-semibold">{title}</Text>
+      <Text variant="titleLarge" className="font-semibold text-white">
+        {title}
+      </Text>
     </View>
   );
 };
 
-// Datos de contactos importantes
 const importantContacts = [
-  {
-    id: '1',
-    name: 'Emergencias',
-    phone: '911',
-    icon: 'call' as const,
-    color: '#D32F2F',
-  },
-  {
-    id: '2',
-    name: 'Policía',
-    phone: '066',
-    icon: 'shield' as const,
-    color: '#0D47A1',
-  },
-  {
-    id: '3',
-    name: 'Cruz Roja',
-    phone: '065',
-    icon: 'medical' as const,
-    color: '#D32F2F',
-  },
+  { id: '1', name: 'Emergencias', phone: '911', icon: 'call', color: '#D32F2F' },
+  { id: '2', name: 'Policía', phone: '066', icon: 'shield', color: '#0D47A1' },
+  { id: '3', name: 'Cruz Roja', phone: '065', icon: 'medical', color: '#D32F2F' },
 ];
 
 export default function ResourceScreen() {
@@ -45,7 +27,7 @@ export default function ResourceScreen() {
     description: '',
   });
 
-  const handleCall = (phone: string) => {
+  const handleCall = (phone) => {
     Linking.openURL(`tel:${phone}`);
   };
 
@@ -57,10 +39,12 @@ export default function ResourceScreen() {
   };
 
   return (
-    <ScrollView className="flex-1" style={{ backgroundColor: theme.colors.background }} showsVerticalScrollIndicator={false}>
+    <ScrollView className="flex-1 bg-background" showsVerticalScrollIndicator={false}>
       <View className="px-5 pt-2.5">
-        <Text variant="headlineMedium" className="mb-1.5">Recursos</Text>
-        <Text variant="bodyMedium" className="opacity-70">
+        <Text variant="headlineMedium" className="mb-1.5 text-white">
+          Recursos
+        </Text>
+        <Text variant="bodyMedium" className="text-muted">
           Contactos importantes y envío de información
         </Text>
       </View>
@@ -70,17 +54,24 @@ export default function ResourceScreen() {
       {importantContacts.map((contact) => (
         <Card
           key={contact.id}
-          className="mx-5 mb-3"
+          className="mx-5 mb-3 bg-surface border border-surfaceMuted"
           onPress={() => handleCall(contact.phone)}
           mode="elevated"
         >
-          <Card.Content className="flex-row items-center p-4">
-            <View className="w-12 h-12 rounded-full justify-center items-center mr-4" style={{ backgroundColor: `${contact.color}20` }}>
+          <Card.Content className="flex-row items-center p-4 gap-3">
+            <View
+              className="w-12 h-12 rounded-full justify-center items-center mr-1"
+              style={{ backgroundColor: `${contact.color}20` }}
+            >
               <Ionicons name={contact.icon} size={24} color={contact.color} />
             </View>
             <View className="flex-1">
-              <Text variant="titleMedium" className="mb-1 font-semibold">{contact.name}</Text>
-              <Text variant="bodySmall" className="opacity-70">{contact.phone}</Text>
+              <Text variant="titleMedium" className="mb-1 font-semibold text-white">
+                {contact.name}
+              </Text>
+              <Text variant="bodySmall" className="text-muted">
+                {contact.phone}
+              </Text>
             </View>
             <Ionicons name="call" size={20} color={contact.color} />
           </Card.Content>
@@ -128,7 +119,7 @@ export default function ResourceScreen() {
           Enviar Información
         </Button>
 
-        <Text variant="bodySmall" className="text-center mb-5 opacity-60">
+        <Text variant="bodySmall" className="text-center mb-5 text-muted">
           La información enviada es completamente anónima y será revisada por las autoridades.
         </Text>
       </View>
@@ -137,5 +128,3 @@ export default function ResourceScreen() {
     </ScrollView>
   );
 }
-
-

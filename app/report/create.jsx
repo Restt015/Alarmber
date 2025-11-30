@@ -1,24 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import {
-  Alert,
-  Image,
-  ScrollView,
-  View,
-} from 'react-native';
+import { Alert, Image, ScrollView, View } from 'react-native';
 import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 
-// Intentar importar expo-image-picker si está disponible
-let ImagePicker: any = null;
+let ImagePicker = null;
 try {
   ImagePicker = require('expo-image-picker');
-} catch (e) {
-  // expo-image-picker no está instalado
-}
-
+} catch (e) {}
 
 export default function CreateReportScreen() {
+  const theme = useTheme();
   const [formData, setFormData] = useState({
     name: '',
     age: '',
@@ -27,39 +19,36 @@ export default function CreateReportScreen() {
     clothing: '',
     circumstances: '',
   });
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [photo, setPhoto] = useState(null);
 
   const pickImage = async () => {
     if (!ImagePicker) {
-      Alert.alert(
-        'Funcionalidad no disponible',
-        'Por favor instala expo-image-picker:\nnpm install expo-image-picker'
-      );
+      Alert.alert('Funcionalidad no disponible', 'Instala expo-image-picker:\nnpm install expo-image-picker');
       return;
     }
-  
+
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert('Permisos', 'Se necesitan permisos para acceder a la galería');
       return;
     }
-  
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 1,
     });
-  
+
     if (!result.canceled && result.assets?.length > 0) {
       setPhoto(result.assets[0].uri);
     }
   };
-  
+
   const takePhoto = async () => {
     if (!ImagePicker) {
       Alert.alert(
         'Funcionalidad no disponible',
-        'Por favor instala expo-image-picker para usar esta función:\nnpm install expo-image-picker'
+        'Instala expo-image-picker para usar esta función:\nnpm install expo-image-picker'
       );
       return;
     }
@@ -114,35 +103,35 @@ export default function CreateReportScreen() {
       return;
     }
 
-    // Aquí normalmente se enviaría al servidor
-    // Por ahora solo navegamos a success
     router.push('/report/success');
   };
 
-  const theme = useTheme();
-
   return (
-    <ScrollView className="flex-1" style={{ backgroundColor: theme.colors.background }} showsVerticalScrollIndicator={false}>
+    <ScrollView className="flex-1 bg-background" showsVerticalScrollIndicator={false}>
       <View className="px-5 pt-5 pb-2.5">
-        <Text variant="bodyMedium" className="opacity-70 leading-6">
+        <Text variant="bodyMedium" className="text-muted leading-6">
           Completa el formulario con la información disponible sobre la persona desaparecida.
         </Text>
       </View>
 
       <View className="px-5 mb-5">
-        <Text variant="titleMedium" className="mb-3 font-bold">Foto</Text>
+        <Text variant="titleMedium" className="mb-3 font-bold text-white">
+          Foto
+        </Text>
         <Button
           mode="outlined"
           onPress={showImagePicker}
-          className="w-full h-[200px] rounded-xl overflow-hidden"
+          className="w-full h-[200px] rounded-xl overflow-hidden border border-surfaceMuted"
           contentStyle={{ width: '100%', height: '100%', padding: 0 }}
         >
           {photo ? (
             <Image source={{ uri: photo }} className="w-full h-full rounded-xl" />
           ) : (
-            <View className="w-full h-full justify-center items-center rounded-xl">
+            <View className="w-full h-full justify-center items-center rounded-xl bg-surface">
               <Ionicons name="camera" size={40} color={theme.colors.onSurfaceVariant} />
-              <Text variant="bodyMedium" className="mt-2.5 opacity-60">Agregar Foto</Text>
+              <Text variant="bodyMedium" className="mt-2.5 text-muted">
+                Agregar Foto
+              </Text>
             </View>
           )}
         </Button>
@@ -224,13 +213,13 @@ export default function CreateReportScreen() {
       <Button
         mode="contained"
         onPress={handleSubmit}
-        className="mx-5 mt-2.5 mb-4"
+        className="mx-5 mt-2.5 mb-4 bg-danger"
         buttonColor={theme.colors.error}
       >
         Enviar Reporte
       </Button>
 
-      <Text variant="bodySmall" className="text-center mx-5 mb-5 opacity-60">
+      <Text variant="bodySmall" className="text-center mx-5 mb-5 text-muted">
         * Campos obligatorios. La información será revisada antes de publicarse.
       </Text>
 
@@ -238,5 +227,3 @@ export default function CreateReportScreen() {
     </ScrollView>
   );
 }
-
-

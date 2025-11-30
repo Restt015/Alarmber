@@ -7,7 +7,8 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { PaperProvider, MD3DarkTheme, configureFonts } from 'react-native-paper';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { useColorScheme } from '../components/useColorScheme';
+import '../nativewind-paper';
 import '../global.css';
 
 export {
@@ -85,3 +86,4 @@ function RootLayoutNav() {
     </PaperProvider>
   );
 }
+
