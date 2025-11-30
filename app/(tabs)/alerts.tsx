@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, View, Image } from 'react-native';
 import { router } from 'expo-router';
-import { Card, Text, FAB, useTheme } from 'react-native-paper';
+import { Card, Text, Searchbar, useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 
 // Datos mock de alertas
@@ -32,6 +32,24 @@ const mockAlerts = [
     daysMissing: 1,
     photo: 'https://via.placeholder.com/150',
     description: 'Baja estatura, cabello rubio',
+  },
+  {
+    id: '4',
+    name: 'Luis Fernández',
+    age: 22,
+    lastSeen: 'Avenida Principal',
+    daysMissing: 7,
+    photo: 'https://via.placeholder.com/150',
+    description: 'Mediana estatura, cabello corto',
+  },
+  {
+    id: '5',
+    name: 'Sofía López',
+    age: 19,
+    lastSeen: 'Parque Central',
+    daysMissing: 2,
+    photo: 'https://via.placeholder.com/150',
+    description: 'Alta, cabello largo negro',
   },
 ];
 
@@ -64,44 +82,51 @@ const AlertCard = ({ alert }: { alert: typeof mockAlerts[0] }) => {
   );
 };
 
-// Componente SectionTitle
-const SectionTitle = ({ title }: { title: string }) => {
-  return (
-    <View className="px-5 mt-2.5 mb-4">
-      <Text variant="titleLarge" className="font-semibold">{title}</Text>
-    </View>
-  );
-};
-
-export default function HomeScreen() {
+export default function AlertsScreen() {
   const theme = useTheme();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredAlerts = mockAlerts.filter(
+    (alert) =>
+      alert.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      alert.lastSeen.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <View className="flex-1" style={{ backgroundColor: theme.colors.background }}>
+      <Searchbar
+        placeholder="Buscar por nombre o ubicación..."
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        className="mx-5 mt-2.5 mb-2.5"
+        iconColor={theme.colors.onSurfaceVariant}
+        inputStyle={{ color: theme.colors.onSurface }}
+      />
+
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-5 pt-2.5">
-          <Text variant="headlineMedium" className="mb-1.5">Alerta Ciudadana</Text>
-          <Text variant="bodyMedium" className="opacity-70">Últimas alertas activas</Text>
+          <Text variant="headlineMedium" className="mb-1.5">Alertas Activas</Text>
+          <Text variant="bodyMedium" className="opacity-70">
+            {filteredAlerts.length} alerta(s) encontrada(s)
+          </Text>
         </View>
 
-        <SectionTitle title="Alertas Recientes" />
+        {filteredAlerts.length === 0 ? (
+          <View className="items-center justify-center py-16">
+            <Ionicons name="search-outline" size={64} color={theme.colors.onSurfaceVariant} />
+            <Text variant="titleMedium" className="mt-5 font-semibold opacity-70">No se encontraron alertas</Text>
+            <Text variant="bodySmall" className="mt-2 opacity-50">
+              Intenta con otros términos de búsqueda
+            </Text>
+          </View>
+        ) : (
+          filteredAlerts.map((alert) => <AlertCard key={alert.id} alert={alert} />)
+        )}
 
-        {mockAlerts.map((alert) => (
-          <AlertCard key={alert.id} alert={alert} />
-        ))}
-
-        <View className="h-24" />
+        <View className="h-5" />
       </ScrollView>
-
-      {/* FAB para crear reporte */}
-      <FAB
-        icon="plus"
-        className="absolute right-5 bottom-8"
-        style={{ backgroundColor: theme.colors.error }}
-        onPress={() => router.push('/report/create')}
-        color="#FFFFFF"
-      />
     </View>
   );
 }
+
 
