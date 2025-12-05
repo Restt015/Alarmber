@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 const mockAlerts = [
   { id: "1", name: "María González", age: 25, lastSeen: "Centro Histórico", daysMissing: 3, photo: "https://via.placeholder.com/300", status: "Urgente", date: "Hace 3 días" },
@@ -104,6 +103,8 @@ const ReportCard = ({ alert }) => {
   );
 };
 
+import AppHeader from '../../components/AppHeader';
+
 export default function AlertsScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
@@ -118,13 +119,14 @@ export default function AlertsScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      
+    <View className="flex-1 bg-background">
+      <AppHeader title="Alertas" />
+
       {/* HEADER */}
       <View className="bg-surface border-b border-surfaceVariant pb-3">
         <View className="px-5 pt-3 mb-2">
           <Text className="text-[24px] font-extrabold text-text tracking-tight">
-            Alertas
+            Búsqueda Activa
           </Text>
         </View>
 
@@ -151,16 +153,14 @@ export default function AlertsScreen() {
               key={filter}
               onPress={() => setActiveFilter(filter)}
               activeOpacity={0.8}
-              className={`mr-3 px-4 py-1.5 rounded-full border ${
-                activeFilter === filter
-                  ? "bg-primary border-primary"
-                  : "bg-surface border-surfaceVariant"
-              }`}
+              className={`mr-3 px-4 py-1.5 rounded-full border ${activeFilter === filter
+                ? "bg-primary border-primary"
+                : "bg-surface border-surfaceVariant"
+                }`}
             >
               <Text
-                className={`text-[13px] font-semibold ${
-                  activeFilter === filter ? "text-white" : "text-textSecondary"
-                }`}
+                className={`text-[13px] font-semibold ${activeFilter === filter ? "text-white" : "text-textSecondary"
+                  }`}
               >
                 {filter}
               </Text>
@@ -187,6 +187,6 @@ export default function AlertsScreen() {
           </View>
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }

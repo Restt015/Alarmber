@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { FlatList, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 const notifications = [
   {
@@ -74,14 +73,17 @@ const NotificationItem = ({ item }) => (
   </Card>
 );
 
+import AppHeader from '../../components/AppHeader';
+
 export default function NotificationsScreen() {
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <View className="flex-1 bg-background">
+      <AppHeader title="Notificaciones" />
 
       {/* HEADER */}
       <View className="px-5 pt-3 pb-4 bg-surface border-b border-surfaceVariant">
         <Text className="text-[24px] font-extrabold text-text tracking-tight">
-          Notificaciones
+          Actividad Reciente
         </Text>
       </View>
 
@@ -93,6 +95,6 @@ export default function NotificationsScreen() {
         contentContainerStyle={{ paddingBottom: 20, paddingTop: 10 }}
         showsVerticalScrollIndicator={false}
       />
-    </SafeAreaView>
+    </View>
   );
 }

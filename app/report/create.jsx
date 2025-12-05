@@ -1,20 +1,52 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
+  TextInput as RNTextInput,
   ScrollView,
+  Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import { Button, Text, TextInput } from "react-native-paper";
+import { Button } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const CustomInput = ({ label, value, onChangeText, icon, multiline = false, keyboardType = "default", style }) => (
+  <View className="mb-5" style={style}>
+    <Text className="text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wider ml-1">
+      {label}
+    </Text>
+    <View
+      className={`flex-row items-center bg-gray-50 border border-gray-200 rounded-2xl px-4 ${multiline ? 'items-start py-3' : 'h-[56px]'}`}
+    >
+      <Ionicons
+        name={icon}
+        size={20}
+        color="#9E9E9E"
+        style={{ marginRight: 12, marginTop: multiline ? 2 : 0 }}
+      />
+      <RNTextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={`Ingresa ${label.toLowerCase()}`}
+        placeholderTextColor="#BDBDBD"
+        multiline={multiline}
+        numberOfLines={multiline ? 4 : 1}
+        keyboardType={keyboardType}
+        className="flex-1 text-[16px] text-gray-900 font-medium"
+        style={{ textAlignVertical: multiline ? 'top' : 'center', height: multiline ? 100 : '100%' }}
+      />
+    </View>
+  </View>
+);
+
 export default function CreateReportScreen() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     age: "",
@@ -73,18 +105,21 @@ export default function CreateReportScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      {/* HEADER estilo Uber */}
-      <View className="flex-row items-center px-5 py-3 border-b border-surfaceVariant bg-surface">
-        <TouchableOpacity onPress={() => router.back()} className="p-2">
-          <Ionicons name="close" size={26} color="#1A1A1A" />
+    <SafeAreaView className="flex-1 bg-white">
+      {/* HEADER */}
+      <View className="flex-row items-center px-4 py-2 border-b border-gray-100 bg-white">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="w-10 h-10 items-center justify-center rounded-full bg-gray-50"
+        >
+          <Ionicons name="close" size={24} color="#1A1A1A" />
         </TouchableOpacity>
 
-        <Text className="flex-1 text-center text-[20px] font-bold text-gray-900">
+        <Text className="flex-1 text-center text-[18px] font-bold text-gray-900">
           Nuevo Reporte
         </Text>
 
-        <View className="w-6" /> {/* Para centrar el título perfectamente */}
+        <View className="w-10" />
       </View>
 
       <KeyboardAvoidingView
@@ -93,20 +128,18 @@ export default function CreateReportScreen() {
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
-          className="flex-1 px-5 pt-4"
-          contentContainerStyle={{ paddingBottom: 40 }}
+          className="flex-1 px-6 pt-6"
+          contentContainerStyle={{ paddingBottom: 50 }}
         >
-          {/* TEXTO DE AYUDA */}
-          <Text className="text-gray-600 text-[14px] leading-5 mb-6">
-            Completa la información lo más precisa posible. Todos los reportes
-            son verificados por un administrador antes de publicarse.
+          <Text className="text-gray-500 text-[15px] leading-6 mb-8 text-center">
+            Por favor, proporciona información detallada y veraz. Tu reporte ayudará a la comunidad y autoridades.
           </Text>
 
-          {/* FOTO estilo Uber */}
+          {/* FOTO UPLOAD */}
           <TouchableOpacity
             onPress={pickImage}
-            className="w-full h-[220px] bg-[#F3F3F3] rounded-2xl border border-gray-300 items-center justify-center mb-7 overflow-hidden"
-            style={{ borderStyle: "dashed", borderWidth: 1.5 }}
+            activeOpacity={0.8}
+            className="w-full h-[240px] bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 items-center justify-center mb-8 overflow-hidden shadow-sm"
           >
             {photo ? (
               <Image
@@ -116,106 +149,84 @@ export default function CreateReportScreen() {
               />
             ) : (
               <View className="items-center">
-                <View className="w-14 h-14 rounded-full bg-gray-200 items-center justify-center mb-2">
-                  <Ionicons name="camera" size={26} color="#777" />
+                <View className="w-16 h-16 rounded-full bg-red-50 items-center justify-center mb-3">
+                  <Ionicons name="camera" size={32} color="#D32F2F" />
                 </View>
-                <Text className="text-gray-600 font-medium">
-                  Subir foto del desaparecido
+                <Text className="text-gray-900 font-bold text-[16px]">
+                  Subir Fotografía
+                </Text>
+                <Text className="text-gray-400 text-[13px] mt-1">
+                  Toca para seleccionar
                 </Text>
               </View>
             )}
           </TouchableOpacity>
 
-          {/* INPUTS TIPO UBER */}
-          <View className="gap-5">
-
-            <TextInput
-              mode="flat"
-              label="Nombre completo"
+          {/* FORMULARIO */}
+          <View>
+            <CustomInput
+              label="Nombre Completo"
               value={formData.name}
               onChangeText={(t) => setFormData({ ...formData, name: t })}
-              underlineColor="transparent"
-              className="rounded-xl bg-surface"
-              style={{ backgroundColor: "#FAFAFA" }}
+              icon="person-outline"
             />
 
             <View className="flex-row gap-4">
-              <TextInput
-                mode="flat"
+              <CustomInput
                 label="Edad"
                 value={formData.age}
-                keyboardType="numeric"
                 onChangeText={(t) => setFormData({ ...formData, age: t })}
-                underlineColor="transparent"
-                className="flex-1 rounded-xl bg-surface"
-                style={{ backgroundColor: "#FAFAFA" }}
+                icon="calendar-outline"
+                keyboardType="numeric"
+                style={{ flex: 1 }}
               />
 
-              <TextInput
-                mode="flat"
-                label="Última ubicación"
+              <CustomInput
+                label="Última Ubicación"
                 value={formData.lastLocation}
-                onChangeText={(t) =>
-                  setFormData({ ...formData, lastLocation: t })
-                }
-                underlineColor="transparent"
-                className="flex-[2] rounded-xl bg-surface"
-                style={{ backgroundColor: "#FAFAFA" }}
+                onChangeText={(t) => setFormData({ ...formData, lastLocation: t })}
+                icon="location-outline"
+                style={{ flex: 1.5 }}
               />
             </View>
 
-            <TextInput
-              mode="flat"
-              label="Descripción física"
+            <CustomInput
+              label="Descripción Física"
               value={formData.description}
-              onChangeText={(t) =>
-                setFormData({ ...formData, description: t })
-              }
-              multiline
-              numberOfLines={3}
-              underlineColor="transparent"
-              className="rounded-xl bg-surface"
-              style={{ backgroundColor: "#FAFAFA" }}
+              onChangeText={(t) => setFormData({ ...formData, description: t })}
+              icon="body-outline"
+              multiline={true}
             />
 
-            <TextInput
-              mode="flat"
+            <CustomInput
               label="Vestimenta"
               value={formData.clothing}
-              onChangeText={(t) =>
-                setFormData({ ...formData, clothing: t })
-              }
-              underlineColor="transparent"
-              className="rounded-xl bg-surface"
-              style={{ backgroundColor: "#FAFAFA" }}
+              onChangeText={(t) => setFormData({ ...formData, clothing: t })}
+              icon="shirt-outline"
             />
 
-            <TextInput
-              mode="flat"
+            <CustomInput
               label="Circunstancias (Opcional)"
               value={formData.circumstances}
-              onChangeText={(t) =>
-                setFormData({ ...formData, circumstances: t })
-              }
-              multiline
-              numberOfLines={3}
-              underlineColor="transparent"
-              className="rounded-xl bg-surface"
-              style={{ backgroundColor: "#FAFAFA" }}
+              onChangeText={(t) => setFormData({ ...formData, circumstances: t })}
+              icon="information-circle-outline"
+              multiline={true}
             />
           </View>
 
-          {/* BOTÓN ESTILO UBER */}
           <Button
             mode="contained"
             onPress={handleSubmit}
             loading={loading}
             buttonColor="#D32F2F"
-            className="rounded-full py-1.5 mt-9"
-            labelStyle={{ fontSize: 16, fontWeight: "700" }}
+            className="rounded-2xl py-2 mt-4 shadow-md"
+            labelStyle={{ fontSize: 17, fontWeight: "700", letterSpacing: 0.5 }}
+            contentStyle={{ height: 56 }}
           >
-            Enviar para validación
+            Enviar Reporte
           </Button>
+
+          <View className="h-10" />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

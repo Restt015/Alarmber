@@ -1,19 +1,20 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { MD3LightTheme, PaperProvider } from 'react-native-paper';
+
 import 'react-native-reanimated';
-import { PaperProvider, MD3DarkTheme, configureFonts } from 'react-native-paper';
 
 import { useColorScheme } from '../components/useColorScheme';
-import '../nativewind-paper';
 import '../global.css';
+import '../nativewind-paper';
 
 export {
   // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
+  ErrorBoundary
 } from 'expo-router';
 
 export const unstable_settings = {
@@ -48,18 +49,20 @@ export default function RootLayout() {
 }
 
 
+
 const paperTheme = {
-  ...MD3DarkTheme,
+  ...MD3LightTheme,
   colors: {
-    ...MD3DarkTheme.colors,
-    primary: '#0D47A1',
+    ...MD3LightTheme.colors,
+    primary: '#D32F2F',
+    secondary: '#121212',
     error: '#D32F2F',
-    background: '#121212',
-    surface: '#1E1E1E',
-    surfaceVariant: '#2E2E2E',
-    onSurface: '#FFFFFF',
-    onSurfaceVariant: '#AAAAAA',
-    outline: '#2E2E2E',
+    background: '#F5F5F5',
+    surface: '#FFFFFF',
+    surfaceVariant: '#EEEEEE',
+    onSurface: '#212121',
+    onSurfaceVariant: '#757575',
+    outline: '#E0E0E0',
   },
 };
 
@@ -68,19 +71,19 @@ function RootLayoutNav() {
 
   return (
     <PaperProvider theme={paperTheme}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={DefaultTheme}>
         <Stack
           screenOptions={{
-            headerStyle: {
-              backgroundColor: '#121212',
-            },
-            headerTintColor: '#FFFFFF',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
+            headerShown: false,
+            contentStyle: { backgroundColor: '#F5F5F5' },
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="report/create" options={{ headerShown: false }} />
+          <Stack.Screen name="report/success" options={{ headerShown: false }} />
+          <Stack.Screen name="news/index" options={{ headerShown: false }} />
+          <Stack.Screen name="alert/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
         </Stack>
       </ThemeProvider>
     </PaperProvider>
