@@ -10,12 +10,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: '#121212',
-        surface: '#1E1E1E',
-        surfaceMuted: '#2E2E2E',
-        primary: '#0D47A1',
+        primary: '#D32F2F', // Red Alert
+        secondary: '#121212', // Black
+        background: '#F5F5F5', // Light Grey
+        surface: '#FFFFFF', // White
+        surfaceVariant: '#EEEEEE', // Light Grey for cards/borders
+        warning: '#FBC02D', // Yellow Warning
+        text: '#212121', // Dark Grey/Black text
+        textSecondary: '#757575', // Grey text
         danger: '#D32F2F',
-        muted: '#AAAAAA',
+        muted: '#9E9E9E',
       },
     },
   },

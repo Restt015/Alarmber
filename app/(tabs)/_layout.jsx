@@ -1,60 +1,96 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+// app/(tabs)/_layout.jsx
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#0D47A1',
-        tabBarInactiveTintColor: '#666666',
+        headerShown: false,
+
         tabBarStyle: {
-          backgroundColor: '#1E1E1E',
-          borderTopColor: '#2E2E2E',
-          borderTopWidth: 1,
+          position: "absolute",
+          bottom: Platform.OS === "ios" ? 22 : 14,
+          left: 20,
+          right: 20,
+          height: 70,
+          borderRadius: 32,
+          paddingBottom: 6,
+          paddingTop: 6,
+          backgroundColor: "#fff",
+          borderWidth: 0.3,
+          borderColor: "#e5e5e5",
+          shadowColor: "#000",
+          shadowOpacity: 0.07,
+          shadowRadius: 12,
+          shadowOffset: { height: 4 },
+          elevation: 6,
         },
-        headerStyle: {
-          backgroundColor: '#121212',
-        },
-        headerTintColor: '#FFFFFF',
-        headerTitleStyle: {
-          fontWeight: 'bold',
+
+        tabBarActiveTintColor: "#D32F2F",
+        tabBarInactiveTintColor: "#8e8e8e",
+
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "600",
+          marginTop: 1,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Inicio',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
-          headerTitle: 'Alerta Ciudadana',
+          title: "Inicio",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="home-outline" size={22} color={color} />
+          ),
         }}
       />
+
       <Tabs.Screen
         name="alerts"
         options={{
-          title: 'Alertas',
-          tabBarIcon: ({ color, size }) => <Ionicons name="alert-circle" size={size} color={color} />,
-          headerTitle: 'Alertas Activas',
+          title: "Alertas",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="alert-circle-outline" size={22} color={color} />
+          ),
         }}
       />
+
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: "Notif.",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="notifications-outline" size={22} color={color} />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="resource"
         options={{
-          title: 'Recursos',
-          tabBarIcon: ({ color, size }) => <Ionicons name="information-circle" size={size} color={color} />,
-          headerTitle: 'Recursos',
+          title: "Recursos",
+          tabBarIcon: ({ color }) => (
+            <Ionicons
+              name="information-circle-outline"
+              size={22}
+              color={color}
+            />
+          ),
         }}
       />
+
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
-          headerTitle: 'Mi Perfil',
+          title: "Perfil",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="person-outline" size={22} color={color} />
+          ),
         }}
       />
     </Tabs>
   );
 }
-

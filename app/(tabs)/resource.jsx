@@ -1,130 +1,142 @@
-import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Linking, ScrollView, View } from 'react-native';
-import { Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
+import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import { Linking, ScrollView, View, TouchableOpacity } from "react-native";
+import { Button, Card, Text, TextInput, useTheme } from "react-native-paper";
 
-const SectionTitle = ({ title }) => {
-  return (
-    <View className="px-5 mt-2.5 mb-4">
-      <Text variant="titleLarge" className="font-semibold text-white">
-        {title}
-      </Text>
-    </View>
-  );
-};
+const SectionTitle = ({ title }) => (
+  <View className="px-5 mt-8 mb-2">
+    <Text className="text-[20px] font-bold text-gray-900">{title}</Text>
+  </View>
+);
 
-const importantContacts = [
-  { id: '1', name: 'Emergencias', phone: '911', icon: 'call', color: '#D32F2F' },
-  { id: '2', name: 'Policía', phone: '066', icon: 'shield', color: '#0D47A1' },
-  { id: '3', name: 'Cruz Roja', phone: '065', icon: 'medical', color: '#D32F2F' },
+const contacts = [
+  { id: "1", name: "Emergencias", phone: "911", icon: "call", color: "#E53935" },
+  { id: "2", name: "Policía Nacional", phone: "104", icon: "shield", color: "#1E88E5" },
+  { id: "3", name: "Cruz Roja", phone: "103", icon: "medical", color: "#D81B60" },
 ];
 
 export default function ResourceScreen() {
   const theme = useTheme();
+
   const [anonymousInfo, setAnonymousInfo] = useState({
-    name: '',
-    location: '',
-    description: '',
+    name: "",
+    location: "",
+    description: "",
   });
 
-  const handleCall = (phone) => {
-    Linking.openURL(`tel:${phone}`);
-  };
+  const handleCall = (phone) => Linking.openURL(`tel:${phone}`);
 
   const handleSubmitInfo = () => {
-    if (!anonymousInfo.name || !anonymousInfo.location || !anonymousInfo.description) {
+    if (!anonymousInfo.name.trim() || !anonymousInfo.location.trim() || !anonymousInfo.description.trim())
       return;
-    }
-    setAnonymousInfo({ name: '', location: '', description: '' });
+
+    setAnonymousInfo({ name: "", location: "", description: "" });
   };
 
   return (
-    <ScrollView className="flex-1 bg-background" showsVerticalScrollIndicator={false}>
-      <View className="px-5 pt-2.5">
-        <Text variant="headlineMedium" className="mb-1.5 text-white">
+    <ScrollView
+      className="flex-1 bg-background"
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+
+      {/* HEADER */}
+      <View className="px-5 pt-8 pb-4 bg-background">
+        <Text className="text-[28px] font-extrabold text-gray-900 tracking-tight">
           Recursos
         </Text>
-        <Text variant="bodyMedium" className="text-muted">
+        <Text className="text-[15px] text-gray-600 mt-1">
           Contactos importantes y envío de información
         </Text>
       </View>
 
+      {/* CONTACTOS */}
       <SectionTitle title="Contactos de Emergencia" />
 
-      {importantContacts.map((contact) => (
-        <Card
-          key={contact.id}
-          className="mx-5 mb-3 bg-surface border border-surfaceMuted"
-          onPress={() => handleCall(contact.phone)}
-          mode="elevated"
-        >
-          <Card.Content className="flex-row items-center p-4 gap-3">
+      <View className="px-5 space-y-4">
+        {contacts.map((c) => (
+          <TouchableOpacity
+            key={c.id}
+            activeOpacity={0.8}
+            onPress={() => handleCall(c.phone)}
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 flex-row items-center"
+          >
+            {/* Icono circular estilo Uber */}
             <View
-              className="w-12 h-12 rounded-full justify-center items-center mr-1"
-              style={{ backgroundColor: `${contact.color}20` }}
+              className="w-14 h-14 rounded-full items-center justify-center"
+              style={{ backgroundColor: `${c.color}15` }}
             >
-              <Ionicons name={contact.icon} size={24} color={contact.color} />
+              <Ionicons name={c.icon} size={26} color={c.color} />
             </View>
-            <View className="flex-1">
-              <Text variant="titleMedium" className="mb-1 font-semibold text-white">
-                {contact.name}
-              </Text>
-              <Text variant="bodySmall" className="text-muted">
-                {contact.phone}
-              </Text>
-            </View>
-            <Ionicons name="call" size={20} color={contact.color} />
-          </Card.Content>
-        </Card>
-      ))}
 
+            <View className="flex-1 ml-4">
+              <Text className="text-[17px] font-semibold text-gray-900">
+                {c.name}
+              </Text>
+              <Text className="text-[13px] text-gray-600 mt-[2px]">
+                {c.phone}
+              </Text>
+            </View>
+
+            <Ionicons name="chevron-forward" size={22} color="#9E9E9E" />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* FORMULARIO */}
       <SectionTitle title="Enviar Información Anónima" />
 
       <View className="px-5">
+
         <TextInput
+          mode="outlined"
           label="Nombre de la persona"
           value={anonymousInfo.name}
-          onChangeText={(text) => setAnonymousInfo({ ...anonymousInfo, name: text })}
-          placeholder="Nombre completo"
-          mode="outlined"
-          className="mb-5"
+          onChangeText={(t) => setAnonymousInfo({ ...anonymousInfo, name: t })}
+          className="mb-4 bg-white rounded-xl"
+          style={{ backgroundColor: "#FFF" }}
+          outlineColor="#E0E0E0"
+          activeOutlineColor={theme.colors.primary}
         />
 
         <TextInput
+          mode="outlined"
           label="Ubicación"
           value={anonymousInfo.location}
-          onChangeText={(text) => setAnonymousInfo({ ...anonymousInfo, location: text })}
-          placeholder="¿Dónde viste a esta persona?"
-          mode="outlined"
-          className="mb-5"
+          onChangeText={(t) => setAnonymousInfo({ ...anonymousInfo, location: t })}
+          className="mb-4 bg-white rounded-xl"
+          style={{ backgroundColor: "#FFF" }}
+          outlineColor="#E0E0E0"
+          activeOutlineColor={theme.colors.primary}
         />
 
         <TextInput
-          label="Descripción"
-          value={anonymousInfo.description}
-          onChangeText={(text) => setAnonymousInfo({ ...anonymousInfo, description: text })}
-          placeholder="Describe lo que viste..."
           mode="outlined"
+          label="Descripción"
           multiline
           numberOfLines={4}
-          className="mb-5"
+          value={anonymousInfo.description}
+          onChangeText={(t) => setAnonymousInfo({ ...anonymousInfo, description: t })}
+          className="mb-5 bg-white rounded-xl"
+          style={{ backgroundColor: "#FFF" }}
+          outlineColor="#E0E0E0"
+          activeOutlineColor={theme.colors.primary}
         />
 
         <Button
           mode="contained"
           onPress={handleSubmitInfo}
-          className="mt-2.5 mb-4"
-          buttonColor={theme.colors.primary}
+          className="py-2.5 rounded-full"
+          labelStyle={{ fontSize: 16, fontWeight: "600" }}
         >
           Enviar Información
         </Button>
 
-        <Text variant="bodySmall" className="text-center mb-5 text-muted">
-          La información enviada es completamente anónima y será revisada por las autoridades.
+        <Text className="text-[13px] text-gray-600 text-center mt-4 mb-6">
+          La información enviada es anónima y será revisada por las autoridades.
         </Text>
-      </View>
 
-      <View className="h-5" />
+      </View>
     </ScrollView>
   );
 }

@@ -47,7 +47,7 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 
-// Tema personalizado para React Native Paper
+
 const paperTheme = {
   ...MD3DarkTheme,
   colors: {

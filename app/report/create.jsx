@@ -1,42 +1,47 @@
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, Image, ScrollView, View } from 'react-native';
-import { Button, Text, TextInput, useTheme } from 'react-native-paper';
-
-let ImagePicker = null;
-try {
-  ImagePicker = require('expo-image-picker');
-} catch (e) {}
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
+import { useState } from "react";
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Button, Text, TextInput } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function CreateReportScreen() {
-  const theme = useTheme();
   const [formData, setFormData] = useState({
-    name: '',
-    age: '',
-    lastLocation: '',
-    description: '',
-    clothing: '',
-    circumstances: '',
+    name: "",
+    age: "",
+    lastLocation: "",
+    description: "",
+    clothing: "",
+    circumstances: "",
   });
+
   const [photo, setPhoto] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const pickImage = async () => {
-    if (!ImagePicker) {
-      Alert.alert('Funcionalidad no disponible', 'Instala expo-image-picker:\nnpm install expo-image-picker');
-      return;
-    }
-
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permisos', 'Se necesitan permisos para acceder a la galería');
+    const { status } =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permisos necesarios",
+        "Debes habilitar acceso a fotos para subir una imagen."
+      );
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 1,
+      quality: 0.85,
     });
 
     if (!result.canceled && result.assets?.length > 0) {
@@ -44,186 +49,175 @@ export default function CreateReportScreen() {
     }
   };
 
-  const takePhoto = async () => {
-    if (!ImagePicker) {
-      Alert.alert(
-        'Funcionalidad no disponible',
-        'Instala expo-image-picker para usar esta función:\nnpm install expo-image-picker'
-      );
-      return;
-    }
-
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permisos', 'Se necesitan permisos para acceder a la cámara');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setPhoto(result.assets[0].uri);
-    }
-  };
-
-  const showImagePicker = () => {
-    Alert.alert('Seleccionar Foto', 'Elige una opción', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Tomar Foto', onPress: takePhoto },
-      { text: 'Elegir de Galería', onPress: pickImage },
-    ]);
-  };
-
   const validateForm = () => {
-    if (!formData.name.trim()) {
-      Alert.alert('Error', 'El nombre es requerido');
-      return false;
-    }
-    if (!formData.age.trim()) {
-      Alert.alert('Error', 'La edad es requerida');
-      return false;
-    }
-    if (!formData.lastLocation.trim()) {
-      Alert.alert('Error', 'La última ubicación es requerida');
-      return false;
-    }
-    if (!formData.description.trim()) {
-      Alert.alert('Error', 'La descripción física es requerida');
-      return false;
-    }
-    return true;
+    if (!formData.name.trim()) return "El nombre es requerido";
+    if (!formData.age.trim()) return "La edad es requerida";
+    if (!formData.lastLocation.trim()) return "La última ubicación es requerida";
+    if (!formData.description.trim()) return "La descripción física es requerida";
+    if (!photo) return "La fotografía es obligatoria";
+    return null;
   };
 
   const handleSubmit = () => {
-    if (!validateForm()) {
+    const error = validateForm();
+    if (error) {
+      Alert.alert("Campos incompletos", error);
       return;
     }
 
-    router.push('/report/success');
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      router.push("/report/success");
+    }, 1500);
   };
 
   return (
-    <ScrollView className="flex-1 bg-background" showsVerticalScrollIndicator={false}>
-      <View className="px-5 pt-5 pb-2.5">
-        <Text variant="bodyMedium" className="text-muted leading-6">
-          Completa el formulario con la información disponible sobre la persona desaparecida.
+    <SafeAreaView className="flex-1 bg-background">
+      {/* HEADER estilo Uber */}
+      <View className="flex-row items-center px-5 py-3 border-b border-surfaceVariant bg-surface">
+        <TouchableOpacity onPress={() => router.back()} className="p-2">
+          <Ionicons name="close" size={26} color="#1A1A1A" />
+        </TouchableOpacity>
+
+        <Text className="flex-1 text-center text-[20px] font-bold text-gray-900">
+          Nuevo Reporte
         </Text>
+
+        <View className="w-6" /> {/* Para centrar el título perfectamente */}
       </View>
 
-      <View className="px-5 mb-5">
-        <Text variant="titleMedium" className="mb-3 font-bold text-white">
-          Foto
-        </Text>
-        <Button
-          mode="outlined"
-          onPress={showImagePicker}
-          className="w-full h-[200px] rounded-xl overflow-hidden border border-surfaceMuted"
-          contentStyle={{ width: '100%', height: '100%', padding: 0 }}
-        >
-          {photo ? (
-            <Image source={{ uri: photo }} className="w-full h-full rounded-xl" />
-          ) : (
-            <View className="w-full h-full justify-center items-center rounded-xl bg-surface">
-              <Ionicons name="camera" size={40} color={theme.colors.onSurfaceVariant} />
-              <Text variant="bodyMedium" className="mt-2.5 text-muted">
-                Agregar Foto
-              </Text>
-            </View>
-          )}
-        </Button>
-        {photo && (
-          <Button
-            mode="text"
-            onPress={() => setPhoto(null)}
-            textColor={theme.colors.error}
-            className="mt-2.5 self-start"
-          >
-            Eliminar foto
-          </Button>
-        )}
-      </View>
-
-      <View className="px-5">
-        <TextInput
-          label="Nombre Completo *"
-          value={formData.name}
-          onChangeText={(text) => setFormData({ ...formData, name: text })}
-          placeholder="Nombre y apellidos"
-          mode="outlined"
-          className="mb-5"
-        />
-
-        <TextInput
-          label="Edad *"
-          value={formData.age}
-          onChangeText={(text) => setFormData({ ...formData, age: text })}
-          placeholder="Edad en años"
-          keyboardType="numeric"
-          mode="outlined"
-          className="mb-5"
-        />
-
-        <TextInput
-          label="Última Ubicación Conocida *"
-          value={formData.lastLocation}
-          onChangeText={(text) => setFormData({ ...formData, lastLocation: text })}
-          placeholder="¿Dónde fue vista por última vez?"
-          mode="outlined"
-          className="mb-5"
-        />
-
-        <TextInput
-          label="Descripción Física *"
-          value={formData.description}
-          onChangeText={(text) => setFormData({ ...formData, description: text })}
-          placeholder="Estatura, peso, color de cabello, color de ojos, etc."
-          multiline
-          numberOfLines={3}
-          mode="outlined"
-          className="mb-5"
-        />
-
-        <TextInput
-          label="Vestimenta"
-          value={formData.clothing}
-          onChangeText={(text) => setFormData({ ...formData, clothing: text })}
-          placeholder="Describe la ropa que llevaba puesta"
-          multiline
-          numberOfLines={2}
-          mode="outlined"
-          className="mb-5"
-        />
-
-        <TextInput
-          label="Circunstancias de la Desaparición"
-          value={formData.circumstances}
-          onChangeText={(text) => setFormData({ ...formData, circumstances: text })}
-          placeholder="Detalles sobre cómo y cuándo desapareció"
-          multiline
-          numberOfLines={4}
-          mode="outlined"
-          className="mb-5"
-        />
-      </View>
-
-      <Button
-        mode="contained"
-        onPress={handleSubmit}
-        className="mx-5 mt-2.5 mb-4 bg-danger"
-        buttonColor={theme.colors.error}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        className="flex-1"
       >
-        Enviar Reporte
-      </Button>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          className="flex-1 px-5 pt-4"
+          contentContainerStyle={{ paddingBottom: 40 }}
+        >
+          {/* TEXTO DE AYUDA */}
+          <Text className="text-gray-600 text-[14px] leading-5 mb-6">
+            Completa la información lo más precisa posible. Todos los reportes
+            son verificados por un administrador antes de publicarse.
+          </Text>
 
-      <Text variant="bodySmall" className="text-center mx-5 mb-5 text-muted">
-        * Campos obligatorios. La información será revisada antes de publicarse.
-      </Text>
+          {/* FOTO estilo Uber */}
+          <TouchableOpacity
+            onPress={pickImage}
+            className="w-full h-[220px] bg-[#F3F3F3] rounded-2xl border border-gray-300 items-center justify-center mb-7 overflow-hidden"
+            style={{ borderStyle: "dashed", borderWidth: 1.5 }}
+          >
+            {photo ? (
+              <Image
+                source={{ uri: photo }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="items-center">
+                <View className="w-14 h-14 rounded-full bg-gray-200 items-center justify-center mb-2">
+                  <Ionicons name="camera" size={26} color="#777" />
+                </View>
+                <Text className="text-gray-600 font-medium">
+                  Subir foto del desaparecido
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-      <View className="h-5" />
-    </ScrollView>
+          {/* INPUTS TIPO UBER */}
+          <View className="gap-5">
+
+            <TextInput
+              mode="flat"
+              label="Nombre completo"
+              value={formData.name}
+              onChangeText={(t) => setFormData({ ...formData, name: t })}
+              underlineColor="transparent"
+              className="rounded-xl bg-surface"
+              style={{ backgroundColor: "#FAFAFA" }}
+            />
+
+            <View className="flex-row gap-4">
+              <TextInput
+                mode="flat"
+                label="Edad"
+                value={formData.age}
+                keyboardType="numeric"
+                onChangeText={(t) => setFormData({ ...formData, age: t })}
+                underlineColor="transparent"
+                className="flex-1 rounded-xl bg-surface"
+                style={{ backgroundColor: "#FAFAFA" }}
+              />
+
+              <TextInput
+                mode="flat"
+                label="Última ubicación"
+                value={formData.lastLocation}
+                onChangeText={(t) =>
+                  setFormData({ ...formData, lastLocation: t })
+                }
+                underlineColor="transparent"
+                className="flex-[2] rounded-xl bg-surface"
+                style={{ backgroundColor: "#FAFAFA" }}
+              />
+            </View>
+
+            <TextInput
+              mode="flat"
+              label="Descripción física"
+              value={formData.description}
+              onChangeText={(t) =>
+                setFormData({ ...formData, description: t })
+              }
+              multiline
+              numberOfLines={3}
+              underlineColor="transparent"
+              className="rounded-xl bg-surface"
+              style={{ backgroundColor: "#FAFAFA" }}
+            />
+
+            <TextInput
+              mode="flat"
+              label="Vestimenta"
+              value={formData.clothing}
+              onChangeText={(t) =>
+                setFormData({ ...formData, clothing: t })
+              }
+              underlineColor="transparent"
+              className="rounded-xl bg-surface"
+              style={{ backgroundColor: "#FAFAFA" }}
+            />
+
+            <TextInput
+              mode="flat"
+              label="Circunstancias (Opcional)"
+              value={formData.circumstances}
+              onChangeText={(t) =>
+                setFormData({ ...formData, circumstances: t })
+              }
+              multiline
+              numberOfLines={3}
+              underlineColor="transparent"
+              className="rounded-xl bg-surface"
+              style={{ backgroundColor: "#FAFAFA" }}
+            />
+          </View>
+
+          {/* BOTÓN ESTILO UBER */}
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            loading={loading}
+            buttonColor="#D32F2F"
+            className="rounded-full py-1.5 mt-9"
+            labelStyle={{ fontSize: 16, fontWeight: "700" }}
+          >
+            Enviar para validación
+          </Button>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

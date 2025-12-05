@@ -1,105 +1,176 @@
-import React from 'react';
-import { ScrollView, View, Image } from 'react-native';
-import { router } from 'expo-router';
-import { Card, Text, FAB } from 'react-native-paper';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { ScrollView, TouchableOpacity, View, Image } from "react-native";
+import { Avatar, Card, Text } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const mockAlerts = [
-  {
-    id: '1',
-    name: 'María González',
-    age: 25,
-    lastSeen: 'Centro Histórico',
-    daysMissing: 3,
-    photo: 'https://via.placeholder.com/150',
-    description: 'Estatura media, cabello castaño',
-  },
-  {
-    id: '2',
-    name: 'Carlos Ramírez',
-    age: 18,
-    lastSeen: 'Zona Norte',
-    daysMissing: 5,
-    photo: 'https://via.placeholder.com/150',
-    description: 'Alto, cabello negro, usa lentes',
-  },
-  {
-    id: '3',
-    name: 'Ana Martínez',
-    age: 30,
-    lastSeen: 'Plaza Principal',
-    daysMissing: 1,
-    photo: 'https://via.placeholder.com/150',
-    description: 'Baja estatura, cabello rubio',
-  },
-];
-
-const AlertCard = ({ alert }) => (
-  <Card
-    className="mx-5 mb-4 bg-surface border border-surfaceMuted"
-    onPress={() => router.push(`/alert/${alert.id}`)}
-    mode="elevated"
+const QuickActionCard = ({ title, icon, color, onPress }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={0.85}
+    className="w-[48%] bg-surface rounded-2xl shadow-sm border border-surfaceVariant px-5 py-6 mb-4 items-center"
   >
-    <Card.Content className="flex-row items-center p-4 gap-3">
-      <Image source={{ uri: alert.photo }} className="w-20 h-20 rounded-lg bg-surfaceMuted" />
-      <View className="flex-1">
-        <Text variant="titleMedium" className="mb-1 font-bold text-white">
-          {alert.name}
-        </Text>
-        <Text variant="bodySmall" className="mb-0.5 text-muted">
-          Edad: {alert.age} años
-        </Text>
-        <Text variant="bodySmall" className="mb-1.5 text-muted">
-          Última ubicación: {alert.lastSeen}
-        </Text>
-        <View className="flex-row items-center mt-1">
-          <Ionicons name="time-outline" size={14} color="#D32F2F" />
-          <Text variant="labelSmall" className="ml-1 font-semibold text-danger">
-            {alert.daysMissing} días desaparecido/a
-          </Text>
-        </View>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color="#AAAAAA" />
-    </Card.Content>
-  </Card>
-);
+    <View
+      className="w-14 h-14 rounded-full items-center justify-center mb-3"
+      style={{ backgroundColor: `${color}20` }}
+    >
+      <Ionicons name={icon} size={30} color={color} />
+    </View>
 
-const SectionTitle = ({ title }) => (
-  <View className="px-5 mt-2.5 mb-4">
-    <Text variant="titleLarge" className="font-semibold text-white">
+    <Text className="text-[16px] font-semibold text-text text-center">
       {title}
     </Text>
-  </View>
+  </TouchableOpacity>
+);
+
+const NewsCard = ({ title, source, time, image }) => (
+  <TouchableOpacity
+    activeOpacity={0.9}
+    className="mr-4 w-[310px] bg-surface rounded-3xl overflow-hidden shadow-sm border border-surfaceVariant"
+  >
+    <View className="w-full h-[160px] overflow-hidden">
+      <Image
+        source={{ uri: image }}
+        className="w-full h-full"
+        resizeMode="cover"
+      />
+    </View>
+
+    <View className="p-4">
+      <Text className="text-primary font-semibold text-[13px] mb-1">
+        {source}
+      </Text>
+
+      <Text
+        className="font-bold text-text text-[16px] leading-tight mb-1"
+        numberOfLines={2}
+      >
+        {title}
+      </Text>
+
+      <Text className="text-textSecondary text-[13px]">{time}</Text>
+    </View>
+  </TouchableOpacity>
 );
 
 export default function HomeScreen() {
   return (
-    <View className="flex-1 bg-background">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="px-5 pt-2.5">
-          <Text variant="headlineMedium" className="mb-1.5 text-white">
-            Alerta Ciudadana
-          </Text>
-          <Text variant="bodyMedium" className="text-muted">
-            Últimas alertas activas
-          </Text>
+    <SafeAreaView className="flex-1 bg-background">
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
+
+        {/* HEADER */}
+        <View className="px-5 pt-4 pb-5 bg-surface border-b border-surfaceVariant flex-row items-center justify-between">
+          <View className="flex-1">
+            <Text className="text-primary font-extrabold text-[24px] leading-tight">
+              Alerta Ciudadana
+            </Text>
+            <Text className="text-textSecondary text-[15px] mt-[2px]">
+              Panel de Control
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/profile")}
+            activeOpacity={0.7}
+            className="ml-3"
+          >
+            <Avatar.Image
+              size={46}
+              source={{ uri: "https://via.placeholder.com/150" }}
+              style={{ backgroundColor: "#E0E0E0" }}
+            />
+          </TouchableOpacity>
         </View>
 
-        <SectionTitle title="Alertas Recientes" />
+        {/* BODY CONTENT */}
+        <View className="px-5 mt-5">
 
-        {mockAlerts.map((alert) => (
-          <AlertCard key={alert.id} alert={alert} />
-        ))}
+          {/* QUICK ACTIONS */}
+          <Text className="font-bold text-text text-[20px] mb-4">
+            Accesos Rápidos
+          </Text>
 
-        <View className="h-24" />
+          <View className="flex-row flex-wrap justify-between">
+            <QuickActionCard
+              title="Crear Reporte"
+              icon="add-circle"
+              color="#D32F2F"
+              onPress={() => router.push("/report/create")}
+            />
+
+            <QuickActionCard
+              title="Alertas Activas"
+              icon="alert-circle"
+              color="#FBC02D"
+              onPress={() => router.push("/(tabs)/alerts")}
+            />
+
+            <QuickActionCard
+              title="Casos Recientes"
+              icon="time"
+              color="#1976D2"
+              onPress={() => router.push("/(tabs)/alerts")}
+            />
+
+            <QuickActionCard
+              title="Noticias"
+              icon="newspaper"
+              color="#7B1FA2"
+              onPress={() => {}}
+            />
+          </View>
+
+          {/* NEWS SECTION */}
+          <View className="mt-6">
+            <View className="flex-row justify-between items-center mb-3 px-1">
+              <Text className="font-bold text-text text-[20px]">
+                Noticias Recientes
+              </Text>
+
+              <TouchableOpacity>
+                <Text className="text-primary text-[14px] font-semibold">
+                  Ver todo
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingLeft: 5,
+                paddingRight: 20,
+              }}
+            >
+              <NewsCard
+                title="Nueva estrategia de búsqueda implementada en la ciudad"
+                source="Seguridad Pública"
+                time="Hace 2 horas"
+                image="https://via.placeholder.com/300"
+              />
+
+              <NewsCard
+                title="Resultados del operativo de fin de semana"
+                source="Policía Municipal"
+                time="Hace 5 horas"
+                image="https://via.placeholder.com/300"
+              />
+
+              <NewsCard
+                title="Consejos de seguridad para la comunidad"
+                source="Prevención del Delito"
+                time="Ayer"
+                image="https://via.placeholder.com/300"
+              />
+            </ScrollView>
+          </View>
+
+        </View>
       </ScrollView>
-
-      <FAB
-        icon="plus"
-        className="absolute right-5 bottom-8 bg-danger"
-        onPress={() => router.push('/report/create')}
-        color="#FFFFFF"
-      />
-    </View>
+    </SafeAreaView>
   );
 }
