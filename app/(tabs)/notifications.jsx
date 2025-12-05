@@ -1,99 +1,73 @@
-import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { FlatList, View } from 'react-native';
-import { Card, Text } from 'react-native-paper';
+import NotificationCard from '../../components/cards/NotificationCard';
+import EmptyState from '../../components/shared/EmptyState';
+import PageHeader from '../../components/shared/PageHeader';
 
-const notifications = [
+const NOTIFICATIONS = [
   {
     id: '1',
-    title: 'Nuevo reporte cercano',
-    description: 'Se ha reportado una desaparición en tu zona.',
-    time: '5 min',
-    icon: 'location',
-    color: '#D32F2F',
+    title: 'Nueva alerta en tu zona',
+    message: 'Se ha reportado una desaparición cerca de tu ubicación actual. Revisa los detalles y ayuda en la búsqueda.',
+    time: 'Hace 10 min',
+    read: false,
+    icon: 'warning'
   },
   {
     id: '2',
-    title: 'Actualización de caso',
-    description: 'El caso #1234 ha sido actualizado a "En búsqueda".',
-    time: '2h',
-    icon: 'refresh',
-    color: '#1976D2',
+    title: 'Actualización de reporte',
+    message: 'El reporte #4829 ha sido actualizado con nueva información sobre el paradero.',
+    time: 'Hace 2 horas',
+    read: true,
+    icon: 'document-text'
   },
   {
     id: '3',
-    title: 'Alerta general',
-    description: 'Se recomienda precaución en la zona centro.',
+    title: 'Reporte verificado',
+    message: 'Tu reporte enviado ayer ha sido verificado y publicado exitosamente.',
     time: 'Ayer',
-    icon: 'warning',
-    color: '#FBC02D',
+    read: true,
+    icon: 'checkmark-circle'
   },
   {
     id: '4',
-    title: 'Reporte validado',
-    description: 'Tu reporte #5678 ha sido validado por un administrador.',
+    title: 'Alerta Amber Activada',
+    message: 'URGENTE: Se ha activado una Alerta Amber para un menor en la zona centro.',
     time: 'Ayer',
-    icon: 'checkmark-circle',
-    color: '#388E3C',
-  },
+    read: true,
+    icon: 'megaphone'
+  }
 ];
-
-const NotificationItem = ({ item }) => (
-  <Card
-    mode="elevated"
-    className="mx-5 mb-3 bg-surface rounded-2xl border border-surfaceVariant shadow-sm"
-    style={{ elevation: 1 }}
-  >
-    <Card.Content className="flex-row items-start p-4">
-
-      {/* ICON */}
-      <View
-        className="w-12 h-12 rounded-full items-center justify-center mr-4"
-        style={{ backgroundColor: `${item.color}22` }}
-      >
-        <Ionicons name={item.icon} size={24} color={item.color} />
-      </View>
-
-      {/* TEXT */}
-      <View className="flex-1">
-        <View className="flex-row justify-between items-center mb-1">
-          <Text className="text-[15px] font-semibold text-text flex-1 mr-2">
-            {item.title}
-          </Text>
-          <Text className="text-[12px] text-textSecondary">
-            {item.time}
-          </Text>
-        </View>
-
-        <Text className="text-[14px] text-textSecondary leading-[20px]">
-          {item.description}
-        </Text>
-      </View>
-
-    </Card.Content>
-  </Card>
-);
-
-import AppHeader from '../../components/AppHeader';
 
 export default function NotificationsScreen() {
   return (
-    <View className="flex-1 bg-background">
-      <AppHeader title="Notificaciones" />
+    <View className="flex-1 bg-white">
+      <PageHeader
+        title="Notificaciones"
+        rightIcon="settings-outline"
+        onRightPress={() => { }}
+      />
 
-      {/* HEADER */}
-      <View className="px-5 pt-3 pb-4 bg-surface border-b border-surfaceVariant">
-        <Text className="text-[24px] font-extrabold text-text tracking-tight">
-          Actividad Reciente
-        </Text>
-      </View>
-
-      {/* LIST */}
       <FlatList
-        data={notifications}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <NotificationItem item={item} />}
-        contentContainerStyle={{ paddingBottom: 20, paddingTop: 10 }}
+        data={NOTIFICATIONS}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <NotificationCard
+            notification={item}
+            onPress={() => {
+              if (item.id === '1') router.push('/alert/1');
+            }}
+          />
+        )}
+        contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <EmptyState
+            title="Sin notificaciones"
+            message="Te avisaremos cuando haya actividad importante."
+            icon="notifications-off-outline"
+          />
+        }
       />
     </View>
   );

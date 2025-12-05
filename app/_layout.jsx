@@ -83,6 +83,8 @@ function RootLayoutNav() {
           <Stack.Screen name="report/success" options={{ headerShown: false }} />
           <Stack.Screen name="news/index" options={{ headerShown: false }} />
           <Stack.Screen name="alert/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/register" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
       </ThemeProvider>
