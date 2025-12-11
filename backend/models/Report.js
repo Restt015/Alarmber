@@ -82,6 +82,35 @@ const reportSchema = new mongoose.Schema({
         type: String,
         enum: ['low', 'medium', 'high', 'critical'],
         default: 'medium'
+    },
+
+    // Admin/Validation Fields
+    validated: {
+        type: Boolean,
+        default: false
+    },
+    validatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    validatedAt: {
+        type: Date,
+        default: null
+    },
+    assignedTo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    assignedAt: {
+        type: Date,
+        default: null
+    },
+    notes: {
+        type: String,
+        default: '',
+        maxlength: [2000, 'Notes cannot be more than 2000 characters']
     }
 }, {
     timestamps: true
@@ -95,5 +124,11 @@ reportSchema.index({ name: 'text', description: 'text', lastLocation: 'text' });
 
 // Index for filtering by status
 reportSchema.index({ status: 1, createdAt: -1 });
+
+// Index for validation status
+reportSchema.index({ validated: 1, status: 1 });
+
+// Index for assignments
+reportSchema.index({ assignedTo: 1 });
 
 module.exports = mongoose.model('Report', reportSchema);

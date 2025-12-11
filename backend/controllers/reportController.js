@@ -6,6 +6,11 @@ const { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } = require('../config/constants');
 // @access  Private
 const createReport = async (req, res, next) => {
     try {
+        console.log('📝 Creating new report...');
+        console.log('User:', req.user.email);
+        console.log('Body:', req.body);
+        console.log('File:', req.file);
+
         const {
             name,
             age,
@@ -32,6 +37,8 @@ const createReport = async (req, res, next) => {
             photo: req.file ? req.file.path : null
         });
 
+        console.log('✅ Report created successfully:', report._id);
+
         // Populate reporter info
         await report.populate('reportedBy', 'name email');
 
@@ -41,6 +48,7 @@ const createReport = async (req, res, next) => {
             data: report
         });
     } catch (error) {
+        console.error('❌ Error creating report:', error);
         next(error);
     }
 };
@@ -58,8 +66,8 @@ const getReports = async (req, res, next) => {
             limit = DEFAULT_PAGE_SIZE
         } = req.query;
 
-        // Build query
-        const query = {};
+        // Build query - only show validated reports to public
+        const query = { validated: true };
 
         if (status) {
             query.status = status;
@@ -259,6 +267,30 @@ const getMyReports = async (req, res, next) => {
     }
 };
 
+// @desc    Get recent validated reports for home screen
+// @route   GET /api/reports/recent
+// @access  Public
+const getRecentReports = async (req, res, next) => {
+    try {
+        const limit = parseInt(req.query.limit) || 5;
+
+        const reports = await Report.find({
+            validated: true,
+            status: 'active'
+        })
+            .populate('reportedBy', 'name')
+            .sort({ createdAt: -1 })
+            .limit(limit);
+
+        res.json({
+            success: true,
+            data: reports
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createReport,
     getReports,
@@ -266,5 +298,6 @@ module.exports = {
     updateReport,
     deleteReport,
     updateReportStatus,
-    getMyReports
+    getMyReports,
+    getRecentReports
 };

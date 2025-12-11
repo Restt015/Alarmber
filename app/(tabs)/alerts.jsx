@@ -1,56 +1,106 @@
-import { useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { router } from "expo-router";
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, View } from 'react-native';
 import AlertCard from '../../components/cards/AlertCard';
 import EmptyState from '../../components/shared/EmptyState';
 import PageHeader from '../../components/shared/PageHeader';
 import SearchBar from '../../components/shared/SearchBar';
-
-const ALERTS_DATA = [
-  {
-    id: "1",
-    name: "Sofia Ramirez",
-    age: "14",
-    lastSeen: "Plaza Central, Ciudad de México",
-    date: "Hace 2 horas",
-    status: "Urgente",
-    photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=60",
-  },
-  {
-    id: "2",
-    name: "Miguel Angel Torres",
-    age: "7",
-    lastSeen: "Parque México, Condesa",
-    date: "Hace 5 horas",
-    status: "En Búsqueda",
-    photo: "https://images.unsplash.com/photo-1503919545885-7f4941199540?w=400&auto=format&fit=crop&q=60",
-  },
-  {
-    id: "3",
-    name: "Lucia Mendez",
-    age: "16",
-    lastSeen: "Metro Insurgentes",
-    date: "Ayer",
-    status: "Reciente",
-    photo: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&auto=format&fit=crop&q=60",
-  },
-  {
-    id: "4",
-    name: "Carlos Ruiz",
-    age: "12",
-    lastSeen: "Centro Comercial Santa Fe",
-    date: "Hace 1 día",
-    status: "En Búsqueda",
-    photo: "https://images.unsplash.com/photo-1488161628813-99c974fc5bfe?w=400&auto=format&fit=crop&q=60",
-  },
-];
+import reportService from '../../services/reportService';
 
 export default function AlertsScreen() {
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredAlerts = ALERTS_DATA.filter(alert =>
-    alert.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    alert.lastSeen.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const loadAlerts = async (isRefresh = false) => {
+    try {
+      if (!isRefresh) setLoading(true);
+
+      const params = {
+        status: 'active'
+      };
+
+      if (searchQuery.trim()) {
+        params.search = searchQuery;
+      }
+
+      const response = await reportService.getReports(params);
+      setAlerts(response.data || []);
+    } catch (error) {
+      console.error('Error loading alerts:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAlerts();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim() || searchQuery === '') {
+      const delaySearch = setTimeout(() => {
+        loadAlerts();
+      }, 300);
+
+      return () => clearTimeout(delaySearch);
+    }
+  }, [searchQuery]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadAlerts(true);
+  };
+
+  const formatAlertForCard = (report) => ({
+    id: report._id,
+    name: report.name,
+    age: report.age,
+    lastSeen: report.lastLocation,
+    date: formatDate(report.createdAt),
+    status: getStatusLabel(report.status),
+    photo: report.photo
+  });
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 1) return 'Hace menos de 1 hora';
+    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+    if (diffDays === 1) return 'Ayer';
+    if (diffDays < 7) return `Hace ${diffDays} días`;
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      active: 'Urgente',
+      investigating: 'En Búsqueda',
+      resolved: 'Encontrado',
+      closed: 'Cerrado'
+    };
+    return labels[status] || 'Activo';
+  };
+
+  if (loading) {
+    return (
+      <View className="flex-1 bg-white">
+        <PageHeader
+          title="Alertas Activas"
+          subtitle="Personas desaparecidas recientemente"
+        />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#D32F2F" />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-white">
@@ -69,15 +119,27 @@ export default function AlertsScreen() {
       </View>
 
       <FlatList
-        data={filteredAlerts}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <AlertCard alert={item} />}
+        data={alerts}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item }) => (
+          <AlertCard
+            alert={formatAlertForCard(item)}
+            onPress={() => router.push(`/alert/${item._id}`)}
+          />
+        )}
         contentContainerStyle={{ paddingBottom: 100, paddingTop: 10, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#D32F2F']}
+          />
+        }
         ListEmptyComponent={
           <EmptyState
             title="No se encontraron alertas"
-            message="Intenta buscar con otro nombre o ubicación."
+            message={searchQuery ? "Intenta buscar con otro nombre o ubicación." : "No hay reportes activos en este momento."}
           />
         }
       />

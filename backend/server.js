@@ -48,7 +48,8 @@ app.get('/', (req, res) => {
             auth: '/api/auth',
             reports: '/api/reports',
             alerts: '/api/alerts',
-            news: '/api/news'
+            news: '/api/news',
+            admin: '/api/admin'
         }
     });
 });
@@ -57,6 +58,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/admin', require('./routes/admin'));
 
 // Error handling
 app.use(notFound);

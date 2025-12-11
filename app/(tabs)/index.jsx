@@ -1,44 +1,57 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 import AlertListItem from '../../components/alerts/AlertListItem';
 import NewsCard from '../../components/cards/NewsCard';
 import StatCard from '../../components/cards/StatCard';
 import HomeHeader from '../../components/shared/HomeHeader';
-
-// Mock data - will be replaced with backend data later
-const RECENT_ALERTS = [
-  {
-    id: "1",
-    name: "Sofia Ramirez",
-    age: "14",
-    lastSeen: "Plaza Central, Ciudad de México",
-    date: "Hace 2 horas",
-    status: "Urgente",
-    photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=60",
-  },
-  {
-    id: "2",
-    name: "Miguel Angel Torres",
-    age: "7",
-    lastSeen: "Parque México, Condesa",
-    date: "Hace 5 horas",
-    status: "En Búsqueda",
-    photo: "https://images.unsplash.com/photo-1503919545885-7f4941199540?w=400&auto=format&fit=crop&q=60",
-  },
-  {
-    id: "3",
-    name: "Lucia Mendez",
-    age: "16",
-    lastSeen: "Metro Insurgentes",
-    date: "Ayer",
-    status: "Reciente",
-    photo: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&auto=format&fit=crop&q=60",
-  },
-];
+import reportService from '../../services/reportService';
 
 export default function HomeScreen() {
+  const [recentAlerts, setRecentAlerts] = useState([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(true);
+
+  useEffect(() => {
+    loadRecentAlerts();
+  }, []);
+
+  const loadRecentAlerts = async () => {
+    try {
+      setLoadingAlerts(true);
+      const response = await reportService.getRecentReports(3);
+      setRecentAlerts(response.data || []);
+    } catch (error) {
+      console.error('Error loading recent alerts:', error);
+    } finally {
+      setLoadingAlerts(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 1) return 'Hace menos de 1 hora';
+    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+    if (diffDays === 1) return 'Ayer';
+    if (diffDays < 7) return `Hace ${diffDays} días`;
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      active: 'Urgente',
+      investigating: 'En Búsqueda',
+      resolved: 'Encontrado',
+      closed: 'Cerrado'
+    };
+    return labels[status] || 'Activo';
+  };
   return (
     <View className="flex-1 bg-white">
       <HomeHeader />
@@ -97,15 +110,15 @@ export default function HomeScreen() {
             <StatCard
               icon="alert-circle"
               label="Alertas Activas"
-              count="12"
+              count={recentAlerts.length.toString()}
               color="#D32F2F"
-              badge="En tu zona"
+              badge="Validadas"
               onPress={() => router.push("/(tabs)/alerts")}
             />
             <StatCard
-              icon="document-text"
-              label="Mis Reportes"
-              count="5"
+              icon="time"
+              label="Casos Recientes"
+              count={recentAlerts.length > 0 ? recentAlerts.length.toString() : "0"}
               color="#1976D2"
               onPress={() => router.push("/(tabs)/alerts")}
             />
@@ -124,13 +137,34 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
-            {RECENT_ALERTS.map((alert) => (
-              <AlertListItem
-                key={alert.id}
-                alert={alert}
-                onPress={() => router.push(`/alert/${alert.id}`)}
-              />
-            ))}
+            {loadingAlerts ? (
+              <View className="py-8 items-center">
+                <ActivityIndicator size="small" color="#D32F2F" />
+              </View>
+            ) : recentAlerts.length > 0 ? (
+              recentAlerts.map((report) => (
+                <AlertListItem
+                  key={report._id}
+                  alert={{
+                    id: report._id,
+                    name: report.name,
+                    age: report.age,
+                    lastSeen: report.lastLocation,
+                    date: formatDate(report.createdAt),
+                    status: getStatusLabel(report.status),
+                    photo: report.photo
+                  }}
+                  onPress={() => router.push(`/alert/${report._id}`)}
+                />
+              ))
+            ) : (
+              <View className="bg-gray-50 rounded-xl p-8 items-center">
+                <Ionicons name="information-circle-outline" size={48} color="#BDBDBD" />
+                <Text className="text-gray-400 text-[14px] mt-2">
+                  No hay alertas recientes
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* NEWS SECTION */}

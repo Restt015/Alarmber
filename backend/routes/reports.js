@@ -7,7 +7,8 @@ const {
     updateReport,
     deleteReport,
     updateReportStatus,
-    getMyReports
+    getMyReports,
+    getRecentReports
 } = require('../controllers/reportController');
 const { protect, admin } = require('../middleware/auth');
 const { validateReport } = require('../middleware/validation');
@@ -15,6 +16,7 @@ const upload = require('../middleware/upload');
 
 // Public routes
 router.get('/', getReports);
+router.get('/recent', getRecentReports);
 
 // Protected routes - specific routes BEFORE parameterized routes
 router.get('/user/my-reports', protect, getMyReports);

@@ -53,7 +53,17 @@ export default function LoginForm() {
             Alert.alert(
                 '¡Bienvenido!',
                 `Hola ${response.user.name}`,
-                [{ text: 'Continuar', onPress: () => router.replace('/(tabs)') }]
+                [{
+                    text: 'Continuar',
+                    onPress: () => {
+                        // Redirect admin to dashboard, regular users to home
+                        if (response.user.role === 'admin') {
+                            router.replace('/admin');
+                        } else {
+                            router.replace('/(tabs)');
+                        }
+                    }
+                }]
             );
         } catch (err) {
             setError(err.message || 'Error al iniciar sesión');
