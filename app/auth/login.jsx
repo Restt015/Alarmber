@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LoginForm from '../../components/auth/LoginForm';
 import LoginHeader from '../../components/auth/LoginHeader';

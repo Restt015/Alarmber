@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
-import { ScrollView, TouchableOpacity, View } from "react-native";
-import { Avatar, Text, useTheme } from "react-native-paper";
+import { useEffect } from "react";
+import { ActivityIndicator, Alert, ScrollView, TouchableOpacity, View } from "react-native";
+import { Avatar, Text } from "react-native-paper";
 
 import PageHeader from '../../components/shared/PageHeader';
 import SectionTitle from '../../components/shared/SectionTitle';
+import { useAuth } from '../../context/AuthContext';
 
 const ProfileOption = ({ icon, label, color, onPress, isDestructive = false }) => (
   <TouchableOpacity
@@ -23,12 +24,51 @@ const ProfileOption = ({ icon, label, color, onPress, isDestructive = false }) =
 );
 
 export default function ProfileScreen() {
-  const theme = useTheme();
-  const [reportsCount] = useState(3);
+  const { user, logout, isAuthenticated, loading } = useAuth();
 
-  const handleLogout = () => {
-    router.replace("/auth/login");
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.replace("/auth/login");
+    }
+  }, [loading, isAuthenticated]);
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro que deseas cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace("/auth/login");
+            } catch (error) {
+              Alert.alert('Error', 'No se pudo cerrar sesión');
+            }
+          }
+        }
+      ]
+    );
   };
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <View className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#D32F2F" />
+        <Text className="mt-4 text-gray-600">Cargando perfil...</Text>
+      </View>
+    );
+  }
+
+  // If not authenticated and not loading, don't render (will redirect)
+  if (!isAuthenticated || !user) {
+    return null;
+  }
 
   return (
     <View className="flex-1 bg-white">
@@ -46,10 +86,12 @@ export default function ProfileScreen() {
         {/* PROFILE HEADER */}
         <View className="items-center pt-6 pb-8 px-6">
           <View className="relative">
-            <Avatar.Image
+            <Avatar.Text
               size={100}
-              source={{ uri: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60" }}
-              className="bg-gray-200"
+              label={user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              backgroundColor="#D32F2F"
+              color="white"
+              labelStyle={{ fontSize: 40, fontWeight: 'bold' }}
             />
             <TouchableOpacity className="absolute bottom-0 right-0 bg-red-600 w-8 h-8 rounded-full items-center justify-center border-2 border-white">
               <Ionicons name="camera" size={16} color="white" />
@@ -57,11 +99,16 @@ export default function ProfileScreen() {
           </View>
 
           <Text className="mt-4 text-[24px] font-bold text-gray-900 text-center tracking-tight">
-            Cesar Restrepo
+            {user.name || 'Usuario'}
           </Text>
           <Text className="text-[15px] text-gray-500 mt-1 text-center">
-            cesar.restrepo@email.com
+            {user.email || 'email@example.com'}
           </Text>
+          {user.phone && (
+            <Text className="text-[14px] text-gray-400 mt-1 text-center">
+              {user.phone}
+            </Text>
+          )}
 
           <TouchableOpacity className="mt-5 px-6 py-2 bg-gray-100 rounded-full">
             <Text className="text-gray-900 font-semibold text-[14px]">
@@ -75,7 +122,7 @@ export default function ProfileScreen() {
           <View className="bg-red-50 rounded-2xl p-5 border border-red-100 flex-row items-center justify-between">
             <View>
               <Text className="text-[32px] font-black text-red-600 leading-9">
-                {reportsCount}
+                0
               </Text>
               <Text className="text-[14px] font-medium text-gray-800 mt-1">
                 Reportes Realizados
@@ -83,6 +130,30 @@ export default function ProfileScreen() {
             </View>
             <View className="w-12 h-12 bg-red-100 rounded-full items-center justify-center">
               <Ionicons name="document-text" size={24} color="#D32F2F" />
+            </View>
+          </View>
+        </View>
+
+        {/* USER INFO */}
+        <SectionTitle title="Información" />
+        <View className="px-5 mb-6">
+          <View className="bg-white rounded-2xl border border-gray-100 p-4">
+            <View className="flex-row items-center mb-3">
+              <Ionicons name="person-outline" size={20} color="#666" />
+              <Text className="ml-3 text-gray-600 text-[13px]">Nombre</Text>
+              <Text className="ml-auto text-gray-900 font-semibold text-[14px]">{user.name}</Text>
+            </View>
+            <View className="border-t border-gray-100 my-2" />
+            <View className="flex-row items-center mb-3">
+              <Ionicons name="mail-outline" size={20} color="#666" />
+              <Text className="ml-3 text-gray-600 text-[13px]">Email</Text>
+              <Text className="ml-auto text-gray-900 font-semibold text-[14px]">{user.email}</Text>
+            </View>
+            <View className="border-t border-gray-100 my-2" />
+            <View className="flex-row items-center">
+              <Ionicons name="shield-checkmark-outline" size={20} color="#666" />
+              <Text className="ml-3 text-gray-600 text-[13px]">Rol</Text>
+              <Text className="ml-auto text-gray-900 font-semibold text-[14px] capitalize">{user.role}</Text>
             </View>
           </View>
         </View>

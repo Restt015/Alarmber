@@ -9,6 +9,7 @@ import { MD3LightTheme, PaperProvider } from 'react-native-paper';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '../components/useColorScheme';
+import { AuthProvider } from '../context/AuthContext';
 import '../global.css';
 import '../nativewind-paper';
 
@@ -70,25 +71,27 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <PaperProvider theme={paperTheme}>
-      <ThemeProvider value={DefaultTheme}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#F5F5F5' },
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="report/create" options={{ headerShown: false }} />
-          <Stack.Screen name="report/success" options={{ headerShown: false }} />
-          <Stack.Screen name="news/index" options={{ headerShown: false }} />
-          <Stack.Screen name="alert/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/login" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/register" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </ThemeProvider>
-    </PaperProvider>
+    <AuthProvider>
+      <PaperProvider theme={paperTheme}>
+        <ThemeProvider value={DefaultTheme}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#F5F5F5' },
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="report/create" options={{ headerShown: false }} />
+            <Stack.Screen name="report/success" options={{ headerShown: false }} />
+            <Stack.Screen name="news/index" options={{ headerShown: false }} />
+            <Stack.Screen name="alert/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/register" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        </ThemeProvider>
+      </PaperProvider>
+    </AuthProvider>
   );
 }
 
