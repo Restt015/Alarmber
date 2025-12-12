@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, ScrollView, TouchableOpacity, View } from "react-native";
+import { ScrollView, TouchableOpacity, View } from "react-native";
 import { Avatar, Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
+import SkeletonProfile from '../../components/shared/SkeletonProfile';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileScreen() {
@@ -25,14 +26,9 @@ export default function ProfileScreen() {
     }
   };
 
-  // Show loading spinner while checking authentication
+  // Show skeleton loading while checking authentication
   if (loading) {
-    return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator size="large" color="#D32F2F" />
-        <Text className="mt-4 text-gray-600">Cargando perfil...</Text>
-      </View>
-    );
+    return <SkeletonProfile />;
   }
 
   // If not authenticated and not loading, don't render (will redirect)

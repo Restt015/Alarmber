@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Linking,
   RefreshControl,
@@ -12,15 +11,18 @@ import {
   View,
 } from "react-native";
 
-import AlertListItem from "../../components/alerts/AlertListItem";
 import MyReportsModal from "../../components/modals/MyReportsModal";
+import ErrorState from "../../components/shared/ErrorState";
 import HomeHeader from "../../components/shared/HomeHeader";
+import ImageWithFallback from "../../components/shared/ImageWithFallback";
+import SkeletonCard from "../../components/shared/SkeletonCard";
 import reportService from "../../services/reportService";
 
 export default function HomeScreen() {
   const [recentAlerts, setRecentAlerts] = useState([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
   const [showMyReportsModal, setShowMyReportsModal] = useState(false);
   const [myReportsCount, setMyReportsCount] = useState(0);
 
@@ -37,6 +39,7 @@ export default function HomeScreen() {
   const loadData = async () => {
     try {
       setLoadingAlerts(true);
+      setError(null);
       const [alertsResponse, reportsResponse] = await Promise.all([
         reportService.getRecentReports(5),
         reportService.getMyReports().catch(() => ({ data: [] })),
@@ -44,8 +47,9 @@ export default function HomeScreen() {
 
       setRecentAlerts(alertsResponse.data || []);
       setMyReportsCount(reportsResponse.data?.length || 0);
-    } catch (error) {
-      console.error("❌ [Home] Error loading data:", error);
+    } catch (err) {
+      console.error("❌ [Home] Error loading data:", err);
+      setError(err.message || 'Error al cargar datos');
     } finally {
       setLoadingAlerts(false);
       setRefreshing(false);
@@ -255,91 +259,110 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ))}
 
-          {/* ALERTAS RECENTES */}
+          {/* ALERTAS RECIENTES */}
           <Text className="font-semibold text-gray-900 text-[18px] mb-3 mt-5">
             Alertas Recientes
           </Text>
 
-         {loadingAlerts ? (
-  <View className="py-10 items-center">
-    <ActivityIndicator size="small" color="#D32F2F" />
-    <Text className="text-gray-500 text-[14px] mt-2">Cargando alertas...</Text>
-  </View>
-) : recentAlerts.length > 0 ? (
-  recentAlerts.map((report) => (
-    <TouchableOpacity
-      key={report._id}
-      onPress={() => router.push(`/alert/${report._id}`)}
-      activeOpacity={0.85}
-      className="mb-4 bg-white rounded-2xl p-4 flex-row"
-      style={{
-        shadowColor: "#000",
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 2,
-      }}
-    >
-      {/* FOTO REDONDA */}
-      <View className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 mr-4">
-        <Image
-          source={{ uri: report.photo }}
-          className="w-full h-full"
-          resizeMode="cover"
-        />
-      </View>
+          {loadingAlerts ? (
+            /* Skeleton loading cards */
+            <View>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </View>
+          ) : error ? (
+            /* Error state */
+            <ErrorState
+              title="Error al cargar alertas"
+              message={error}
+              onRetry={loadData}
+            />
+          ) : recentAlerts.length > 0 ? (
+            recentAlerts.map((report) => (
+              <TouchableOpacity
+                key={report._id}
+                onPress={() => router.push(`/alert/${report._id}`)}
+                activeOpacity={0.85}
+                className="mb-4 bg-white rounded-2xl p-4 flex-row"
+                style={{
+                  shadowColor: "#000",
+                  shadowOpacity: 0.05,
+                  shadowRadius: 6,
+                  shadowOffset: { width: 0, height: 2 },
+                  elevation: 2,
+                }}
+              >
+                {/* FOTO CUADRADA with loading and fallback */}
+                <ImageWithFallback
+                  uri={report.photo}
+                  className="w-20 h-20 rounded-xl overflow-hidden mr-4"
+                  fallbackIcon="person-outline"
+                  fallbackIconSize={32}
+                  fallbackIconColor="#9CA3AF"
+                />
 
-      {/* INFO */}
-      <View className="flex-1 justify-center">
-        {/* Nombre + Estado */}
-        <View className="flex-row justify-between items-center mb-1">
-          <Text className="text-[16px] font-semibold text-gray-900" numberOfLines={1}>
-            {report.name}
-          </Text>
+                {/* INFO */}
+                <View className="flex-1 justify-center">
+                  {/* Nombre + Estado */}
+                  <View className="flex-row justify-between items-start mb-1">
+                    <Text
+                      className="text-[16px] font-semibold text-gray-900 flex-1 pr-2"
+                      numberOfLines={1}
+                    >
+                      {report.name}
+                    </Text>
 
-          <View className="px-2 py-0.5 rounded-full bg-red-50">
-            <Text className="text-[11px] text-red-600 font-bold uppercase">
-              {getStatusLabel(report.status)}
-            </Text>
-          </View>
-        </View>
+                    <View className="px-2 py-0.5 rounded-md bg-red-50">
+                      <Text className="text-[10px] text-red-600 font-bold uppercase tracking-wide">
+                        {getStatusLabel(report.status)}
+                      </Text>
+                    </View>
+                  </View>
 
-        {/* Ciudad / Última ubicación */}
-        <Text className="text-gray-600 text-[13px]" numberOfLines={1}>
-          Última ubicación: <Text className="font-medium">{report.lastLocation}</Text>
-        </Text>
+                  {/* Última ubicación */}
+                  <Text
+                    className="text-gray-600 text-[13px]"
+                    numberOfLines={1}
+                  >
+                    Última ubicación:{" "}
+                    <Text className="font-medium">{report.lastLocation}</Text>
+                  </Text>
 
-        {/* Fecha */}
-        <View className="flex-row items-center mt-1">
-          <Ionicons name="time-outline" size={13} color="#999" />
-          <Text className="text-gray-400 text-[12px] ml-1">
-            {formatDate(report.createdAt)}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  ))
-) : (
-  <View
-    className="p-10 rounded-2xl items-center bg-white"
-    style={{
-      shadowColor: "#000",
-      shadowOpacity: 0.04,
-      shadowRadius: 5,
-      shadowOffset: { width: 0, height: 2 },
-      elevation: 2,
-    }}
-  >
-    <Ionicons name="notifications-off-outline" size={45} color="#BDBDBD" />
-    <Text className="font-semibold text-gray-900 text-[17px] mt-3">
-      No hay alertas recientes
-    </Text>
-    <Text className="text-gray-500 text-[14px] text-center leading-5 mt-1 px-8">
-      Cuando se validen nuevas alertas, aparecerán en esta sección.
-    </Text>
-  </View>
-)}
-
+                  {/* Fecha */}
+                  <View className="flex-row items-center mt-2">
+                    <Ionicons name="time-outline" size={13} color="#9CA3AF" />
+                    <Text className="text-gray-400 text-[12px] ml-1">
+                      {formatDate(report.createdAt)}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View
+              className="p-10 rounded-2xl items-center bg-white"
+              style={{
+                shadowColor: "#000",
+                shadowOpacity: 0.04,
+                shadowRadius: 5,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 2,
+              }}
+            >
+              <Ionicons
+                name="notifications-off-outline"
+                size={45}
+                color="#BDBDBD"
+              />
+              <Text className="font-semibold text-gray-900 text-[17px] mt-3">
+                No hay alertas recientes
+              </Text>
+              <Text className="text-gray-500 text-[14px] text-center leading-5 mt-1 px-8">
+                Cuando se validen nuevas alertas, aparecerán en esta sección.
+              </Text>
+            </View>
+          )}
 
           {/* INFO BOX */}
           <View

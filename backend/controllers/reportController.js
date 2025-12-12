@@ -5,6 +5,30 @@ const User = require('../models/User');
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
 
+// Helper function to convert photo path to full URL
+const getPhotoUrl = (photoPath) => {
+    if (!photoPath) return null;
+
+    // If already a full URL, return as is
+    if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
+        return photoPath;
+    }
+
+    // Normalize path separators (Windows \ to /)
+    const normalizedPath = photoPath.replace(/\\/g, '/');
+
+    // Remove leading slash if present to avoid double slashes
+    const cleanPath = normalizedPath.startsWith('/')
+        ? normalizedPath.substring(1)
+        : normalizedPath;
+
+    // Get base URL from environment or use localhost as fallback
+    const baseUrl = process.env.API_URL || 'http://localhost:5000';
+
+    // Construct full URL
+    return `${baseUrl}/${cleanPath}`;
+};
+
 // @desc    Create a new report
 // @route   POST /api/reports
 // @access  Private
@@ -33,6 +57,11 @@ const createReport = async (req, res, next) => {
             photo: req.file ? req.file.path : null,
             reportedBy: req.user._id
         });
+
+        // Transform photo path to full URL
+        if (report.photo) {
+            report.photo = getPhotoUrl(report.photo);
+        }
 
         res.status(201).json({
             success: true,
@@ -91,9 +120,18 @@ const getReports = async (req, res, next) => {
             Report.countDocuments(query)
         ]);
 
+        // Transform photo paths to full URLs
+        const reportsWithFullUrls = reports.map(report => {
+            const reportObj = report.toObject();
+            if (reportObj.photo) {
+                reportObj.photo = getPhotoUrl(reportObj.photo);
+            }
+            return reportObj;
+        });
+
         res.json({
             success: true,
-            data: reports,
+            data: reportsWithFullUrls,
             pagination: {
                 currentPage: pageNum,
                 totalPages: Math.ceil(total / limitNum),
@@ -123,9 +161,18 @@ const getRecentReports = async (req, res, next) => {
             .sort({ createdAt: -1 })
             .limit(limitNum);
 
+        // Transform photo paths to full URLs
+        const reportsWithFullUrls = reports.map(report => {
+            const reportObj = report.toObject();
+            if (reportObj.photo) {
+                reportObj.photo = getPhotoUrl(reportObj.photo);
+            }
+            return reportObj;
+        });
+
         res.json({
             success: true,
-            data: reports
+            data: reportsWithFullUrls
         });
     } catch (error) {
         console.error('❌ Error getting recent reports:', error);
@@ -161,9 +208,18 @@ const getFinishedReports = async (req, res, next) => {
 
         const total = await Report.countDocuments(query);
 
+        // Transform photo paths to full URLs
+        const reportsWithFullUrls = reports.map(report => {
+            const reportObj = report.toObject();
+            if (reportObj.photo) {
+                reportObj.photo = getPhotoUrl(reportObj.photo);
+            }
+            return reportObj;
+        });
+
         res.json({
             success: true,
-            data: reports,
+            data: reportsWithFullUrls,
             pagination: {
                 currentPage: pageNum,
                 totalPages: Math.ceil(total / limitNum),
@@ -212,9 +268,15 @@ const getReportById = async (req, res, next) => {
 
         console.log('✅ Report found:', report.name);
 
+        // Transform photo path to full URL
+        const reportObj = report.toObject();
+        if (reportObj.photo) {
+            reportObj.photo = getPhotoUrl(reportObj.photo);
+        }
+
         res.json({
             success: true,
-            data: report
+            data: reportObj
         });
     } catch (error) {
         console.error('❌ Error in getReportById:', error);
@@ -362,9 +424,18 @@ const getMyReports = async (req, res, next) => {
 
         const total = await Report.countDocuments(query);
 
+        // Transform photo paths to full URLs
+        const reportsWithFullUrls = reports.map(report => {
+            const reportObj = report.toObject();
+            if (reportObj.photo) {
+                reportObj.photo = getPhotoUrl(reportObj.photo);
+            }
+            return reportObj;
+        });
+
         res.json({
             success: true,
-            data: reports,
+            data: reportsWithFullUrls,
             pagination: {
                 currentPage: pageNum,
                 totalPages: Math.ceil(total / limitNum),

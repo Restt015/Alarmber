@@ -1,21 +1,27 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, Text, View } from 'react-native';
 import AlertCard from '../../components/cards/AlertCard';
 import EmptyState from '../../components/shared/EmptyState';
+import ErrorState from '../../components/shared/ErrorState';
 import PageHeader from '../../components/shared/PageHeader';
 import SearchBar from '../../components/shared/SearchBar';
+import { SkeletonList } from '../../components/shared/SkeletonCard';
 import reportService from '../../services/reportService';
 
 export default function AlertsScreen() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const loadAlerts = async (isRefresh = false) => {
+  const loadAlerts = async (isRefresh = false, isSearch = false) => {
     try {
-      if (!isRefresh) setLoading(true);
+      if (!isRefresh && !isSearch) setLoading(true);
+      if (isSearch) setSearching(true);
+      setError(null);
 
       const params = {
         status: 'active'
@@ -27,12 +33,14 @@ export default function AlertsScreen() {
 
       const response = await reportService.getReports(params);
       console.log('✅ Alerts loaded:', response.data?.length || 0);
-      setAlerts(response.data || []); // Axios interceptor unwraps, so response.data is the reports array
-    } catch (error) {
-      console.error('❌ Error loading alerts:', error);
+      setAlerts(response.data || []);
+    } catch (err) {
+      console.error('❌ Error loading alerts:', err);
+      setError(err.message || 'Error al cargar las alertas');
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setSearching(false);
     }
   };
 
@@ -50,7 +58,7 @@ export default function AlertsScreen() {
   useEffect(() => {
     if (searchQuery.trim() || searchQuery === '') {
       const delaySearch = setTimeout(() => {
-        loadAlerts();
+        loadAlerts(false, true);
       }, 300);
 
       return () => clearTimeout(delaySearch);
@@ -96,6 +104,7 @@ export default function AlertsScreen() {
     return labels[status] || 'Activo';
   };
 
+  // Initial loading state with skeletons
   if (loading) {
     return (
       <View className="flex-1 bg-white">
@@ -103,9 +112,27 @@ export default function AlertsScreen() {
           title="Alertas Activas"
           subtitle="Personas desaparecidas recientemente"
         />
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#D32F2F" />
+        <View className="px-5 mt-4 mb-4">
+          <View className="h-12 bg-gray-100 rounded-xl" />
         </View>
+        <SkeletonList count={4} style={{ paddingHorizontal: 20 }} />
+      </View>
+    );
+  }
+
+  // Error state with retry
+  if (error && alerts.length === 0) {
+    return (
+      <View className="flex-1 bg-white">
+        <PageHeader
+          title="Alertas Activas"
+          subtitle="Personas desaparecidas recientemente"
+        />
+        <ErrorState
+          title="Error al cargar alertas"
+          message={error}
+          onRetry={() => loadAlerts()}
+        />
       </View>
     );
   }
@@ -118,13 +145,30 @@ export default function AlertsScreen() {
       />
 
       <View className="px-5 mt-4">
-        <SearchBar
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onClear={() => setSearchQuery('')}
-          placeholder="Buscar por nombre o ubicación..."
-        />
+        <View className="relative">
+          <SearchBar
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onClear={() => setSearchQuery('')}
+            placeholder="Buscar por nombre o ubicación..."
+          />
+          {/* Search loading indicator */}
+          {searching && (
+            <View className="absolute right-12 top-3">
+              <ActivityIndicator size="small" color="#D32F2F" />
+            </View>
+          )}
+        </View>
       </View>
+
+      {/* Results count when searching */}
+      {searchQuery.trim() && !searching && (
+        <View className="px-5 py-2">
+          <Text className="text-gray-500 text-sm">
+            {alerts.length} resultado{alerts.length !== 1 ? 's' : ''} para "{searchQuery}"
+          </Text>
+        </View>
+      )}
 
       <FlatList
         data={alerts}
@@ -142,6 +186,7 @@ export default function AlertsScreen() {
             refreshing={refreshing}
             onRefresh={handleRefresh}
             colors={['#D32F2F']}
+            tintColor="#D32F2F"
           />
         }
         ListEmptyComponent={
@@ -154,3 +199,4 @@ export default function AlertsScreen() {
     </View>
   );
 }
+

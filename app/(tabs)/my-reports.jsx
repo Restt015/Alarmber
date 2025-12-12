@@ -1,9 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, RefreshControl, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ErrorState from '../../components/shared/ErrorState';
+import ImageWithFallback from '../../components/shared/ImageWithFallback';
 import ReportStatusBadge from '../../components/shared/ReportStatusBadge';
+import { SkeletonList } from '../../components/shared/SkeletonCard';
 import ValidationBadge from '../../components/shared/ValidationBadge';
 import { useAuth } from '../../context/AuthContext';
 import reportService from '../../services/reportService';
@@ -12,8 +15,9 @@ export default function MyReportsScreen() {
     const { user } = useAuth();
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
-    const [currentFilter, setCurrentFilter] = useState('all'); // active, finished, all (default to all to see pending)
+    const [currentFilter, setCurrentFilter] = useState('all');
 
     useEffect(() => {
         loadMyReports();
@@ -29,11 +33,13 @@ export default function MyReportsScreen() {
     const loadMyReports = async () => {
         try {
             setLoading(true);
+            setError(null);
             const response = await reportService.getMyReports();
             console.log('✅ My reports loaded:', response.data?.length || 0);
             setReports(response.data || []);
-        } catch (error) {
-            console.error('❌ Error loading my reports:', error);
+        } catch (err) {
+            console.error('❌ Error loading my reports:', err);
+            setError(err.message || 'Error al cargar tus reportes');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -91,24 +97,14 @@ export default function MyReportsScreen() {
                 activeOpacity={0.7}
             >
                 <View className="flex-row">
-                    {/* Photo */}
-                    <View className="w-28 h-28 bg-gray-200">
-                        {report.photo ? (
-                            <Image
-                                source={{
-                                    uri: report.photo.startsWith('http')
-                                        ? report.photo
-                                        : `http://192.168.0.3:5000/${report.photo.replace(/\\/g, '/')}`
-                                }}
-                                className="w-full h-full"
-                                resizeMode="cover"
-                            />
-                        ) : (
-                            <View className="flex-1 items-center justify-center">
-                                <Ionicons name="person-outline" size={40} color="#BDBDBD" />
-                            </View>
-                        )}
-                    </View>
+                    {/* Photo with loading and fallback */}
+                    <ImageWithFallback
+                        uri={report.photo}
+                        className="w-28 h-28"
+                        fallbackIcon="person-outline"
+                        fallbackIconSize={40}
+                        fallbackIconColor="#BDBDBD"
+                    />
 
                     {/* Info */}
                     <View className="flex-1 p-4">
@@ -144,16 +140,32 @@ export default function MyReportsScreen() {
         );
     };
 
+    // Loading state with skeletons
     if (loading) {
         return (
             <SafeAreaView className="flex-1 bg-gray-50">
                 <View className="px-5 pt-8 pb-4 bg-white border-b border-gray-100">
                     <Text className="text-[28px] font-bold text-gray-900">Mis Reportes</Text>
                 </View>
-                <View className="flex-1 items-center justify-center">
-                    <ActivityIndicator size="large" color="#D32F2F" />
-                    <Text className="text-gray-500 mt-4">Cargando reportes...</Text>
+                <View className="px-5 pt-4">
+                    <SkeletonList count={4} />
                 </View>
+            </SafeAreaView>
+        );
+    }
+
+    // Error state
+    if (error && reports.length === 0) {
+        return (
+            <SafeAreaView className="flex-1 bg-gray-50">
+                <View className="px-5 pt-8 pb-4 bg-white border-b border-gray-100">
+                    <Text className="text-[28px] font-bold text-gray-900">Mis Reportes</Text>
+                </View>
+                <ErrorState
+                    title="Error al cargar reportes"
+                    message={error}
+                    onRetry={loadMyReports}
+                />
             </SafeAreaView>
         );
     }

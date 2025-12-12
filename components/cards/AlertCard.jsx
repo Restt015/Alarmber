@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Image, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
+import ImageWithFallback from '../shared/ImageWithFallback';
 import StatusBadge from '../shared/StatusBadge';
 
 export default function AlertCard({ alert }) {
@@ -18,10 +19,13 @@ export default function AlertCard({ alert }) {
             }}
         >
             <View className="flex-row p-3 items-center">
-                {/* IMAGE */}
-                <Image
-                    source={{ uri: alert.photo }}
-                    className="w-[90px] h-[90px] rounded-xl bg-gray-100"
+                {/* IMAGE with loading and fallback */}
+                <ImageWithFallback
+                    uri={alert.photo}
+                    className="w-[90px] h-[90px] rounded-xl overflow-hidden"
+                    fallbackIcon="person-outline"
+                    fallbackIconSize={36}
+                    fallbackIconColor="#9CA3AF"
                 />
 
                 <View className="flex-1 ml-4 justify-between">
@@ -64,3 +68,4 @@ export default function AlertCard({ alert }) {
         </TouchableOpacity>
     );
 }
+

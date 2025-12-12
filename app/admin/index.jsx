@@ -1,10 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import AdminHeader from '../../components/admin/AdminHeader';
 import DashboardStatCard from '../../components/admin/DashboardStatCard';
 import ReportListItem from '../../components/admin/ReportListItem';
+import ErrorState from '../../components/shared/ErrorState';
+import SkeletonCard from '../../components/shared/SkeletonCard';
+import { SkeletonStatRow } from '../../components/shared/SkeletonStatCard';
 import { useAuth } from '../../context/AuthContext';
 import adminService from '../../services/adminService';
 
@@ -12,6 +15,7 @@ export default function AdminDashboard() {
     const { user, isAuthenticated } = useAuth();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState(null);
     const [stats, setStats] = useState(null);
     const [pendingReports, setPendingReports] = useState([]);
 
@@ -25,15 +29,17 @@ export default function AdminDashboard() {
     // Load dashboard data
     const loadDashboardData = async () => {
         try {
+            setError(null);
             const [statsData, reportsData] = await Promise.all([
                 adminService.getDashboardStats(),
                 adminService.getAllReports({ validated: false, limit: 5 })
             ]);
 
-            setStats(statsData.data); // statsData.data contains the stats object
-            setPendingReports(reportsData.data || []); // Axios interceptor unwraps, so reportsData.data is the array
-        } catch (error) {
-            console.error('Error loading dashboard:', error);
+            setStats(statsData.data);
+            setPendingReports(reportsData.data || []);
+        } catch (err) {
+            console.error('Error loading dashboard:', err);
+            setError(err.message || 'Error al cargar el dashboard');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -62,9 +68,36 @@ export default function AdminDashboard() {
 
     if (loading) {
         return (
-            <View className="flex-1 bg-white items-center justify-center">
-                <ActivityIndicator size="large" color="#9C27B0" />
-                <Text className="mt-4 text-gray-600">Cargando dashboard...</Text>
+            <View className="flex-1 bg-gray-50">
+                <AdminHeader title="Dashboard" />
+                <View className="px-5 pt-6">
+                    {/* Welcome skeleton */}
+                    <View className="h-4 bg-gray-200 rounded w-32 mb-2 animate-pulse" />
+                    <View className="h-7 bg-gray-200 rounded w-48 mb-6 animate-pulse" />
+                    {/* Stat cards skeleton */}
+                    <SkeletonStatRow />
+                    <SkeletonStatRow />
+                    {/* Report cards skeleton */}
+                    <View className="mt-4">
+                        <View className="h-5 bg-gray-200 rounded w-32 mb-3 animate-pulse" />
+                        <SkeletonCard />
+                        <SkeletonCard />
+                    </View>
+                </View>
+            </View>
+        );
+    }
+
+    // Error state
+    if (error && !stats) {
+        return (
+            <View className="flex-1 bg-gray-50">
+                <AdminHeader title="Dashboard" />
+                <ErrorState
+                    title="Error al cargar dashboard"
+                    message={error}
+                    onRetry={loadDashboardData}
+                />
             </View>
         );
     }
