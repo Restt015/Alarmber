@@ -19,13 +19,6 @@ export default function AdminDashboard() {
     const [stats, setStats] = useState(null);
     const [pendingReports, setPendingReports] = useState([]);
 
-    // Redirect if not admin
-    useEffect(() => {
-        if (!loading && (!isAuthenticated || user?.role !== 'admin')) {
-            router.replace('/');
-        }
-    }, [loading, isAuthenticated, user]);
-
     // Load dashboard data
     const loadDashboardData = async () => {
         try {

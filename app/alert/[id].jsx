@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +14,7 @@ import { Button } from "react-native-paper";
 import CommentInput from "../../components/alerts/CommentInput";
 import InfoRow from "../../components/alerts/InfoRow";
 import ReporterBox from "../../components/alerts/ReporterBox";
+import Loader from "../../components/shared/Loader";
 import PageHeader from "../../components/shared/PageHeader";
 import reportService from "../../services/reportService";
 
@@ -85,12 +85,7 @@ export default function AlertDetailScreen() {
     return (
       <View className="flex-1 bg-white">
         <PageHeader title="Detalle del Reporte" showBack={true} />
-        <View className="flex-1 justify-center items-center px-5">
-          <ActivityIndicator size="large" color="#D32F2F" />
-          <Text className="text-gray-600 text-[16px] mt-4 font-medium">
-            Cargando reporte...
-          </Text>
-        </View>
+        <Loader fullScreen message="Cargando reporte..." />
       </View>
     );
   }
@@ -186,6 +181,17 @@ export default function AlertDetailScreen() {
             >
               <Text className="text-white text-[12px] font-bold tracking-wider">
                 {getStatusLabel(report.status)}
+              </Text>
+            </View>
+
+            {/* Views Counter */}
+            <View
+              className="absolute bottom-4 left-4 px-3 py-1.5 rounded-full flex-row items-center"
+              style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+            >
+              <Ionicons name="eye" size={14} color="white" />
+              <Text className="text-white text-[12px] font-semibold ml-1">
+                {report.views || 0} {(report.views || 0) === 1 ? 'vista' : 'vistas'}
               </Text>
             </View>
           </View>

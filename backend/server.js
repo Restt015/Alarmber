@@ -11,6 +11,7 @@ const authRoutes = require('./routes/auth');
 const reportRoutes = require('./routes/reports');
 const alertRoutes = require('./routes/alerts');
 const newsRoutes = require('./routes/news');
+const notificationRoutes = require('./routes/notifications');
 
 // Initialize express app
 const app = express();
@@ -49,6 +50,7 @@ app.get('/', (req, res) => {
             reports: '/api/reports',
             alerts: '/api/alerts',
             news: '/api/news',
+            notifications: '/api/notifications',
             admin: '/api/admin'
         }
     });
@@ -58,6 +60,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', require('./routes/admin'));
 
 // Error handling

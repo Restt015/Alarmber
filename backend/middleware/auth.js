@@ -49,6 +49,25 @@ const protect = async (req, res, next) => {
     }
 };
 
+// Optional auth - tries to authenticate but doesn't fail if no token
+// Useful for routes that are public but need to know the user if logged in
+const optionalAuth = async (req, res, next) => {
+    // Check for token in Authorization header
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            const token = req.headers.authorization.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            req.user = await User.findById(decoded.id).select('-password');
+        } catch (error) {
+            // Token invalid or expired - continue without user
+            req.user = null;
+        }
+    } else {
+        req.user = null;
+    }
+    next();
+};
+
 // Admin only middleware
 const admin = (req, res, next) => {
     if (req.user && req.user.role === 'admin') {
@@ -68,4 +87,4 @@ const generateToken = (id) => {
     });
 };
 
-module.exports = { protect, admin, generateToken };
+module.exports = { protect, optionalAuth, admin, generateToken };

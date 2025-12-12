@@ -262,9 +262,17 @@ const getReportById = async (req, res, next) => {
             });
         }
 
-        // Increment view count
-        report.views += 1;
-        await report.save();
+        // Increment view count only if:
+        // 1. User is not logged in (public view), OR
+        // 2. Logged in user is different from the report creator
+        const currentUserId = req.user?._id?.toString();
+        const reportOwnerId = report.reportedBy?._id?.toString();
+
+        // Only increment if it's not the owner viewing their own report
+        if (!currentUserId || currentUserId !== reportOwnerId) {
+            report.views += 1;
+            await report.save();
+        }
 
         console.log('✅ Report found:', report.name);
 

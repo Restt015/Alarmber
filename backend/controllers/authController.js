@@ -186,10 +186,38 @@ const changePassword = async (req, res, next) => {
     }
 };
 
+// @desc    Update push notification token
+// @route   PUT /api/auth/push-token
+// @access  Private
+const updatePushToken = async (req, res, next) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: 'Push token is required'
+            });
+        }
+
+        await User.findByIdAndUpdate(req.user._id, {
+            expoPushToken: token
+        });
+
+        res.json({
+            success: true,
+            message: 'Push token updated successfully'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     register,
     login,
     getProfile,
     updateProfile,
-    changePassword
+    changePassword,
+    updatePushToken
 };

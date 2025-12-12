@@ -11,7 +11,7 @@ const {
     getRecentReports,
     getFinishedReports
 } = require('../controllers/reportController');
-const { protect, admin } = require('../middleware/auth');
+const { protect, optionalAuth, admin } = require('../middleware/auth');
 const { validateReport } = require('../middleware/validation');
 const upload = require('../middleware/upload');
 
@@ -25,7 +25,8 @@ router.get('/user/my-reports', protect, getMyReports);
 router.post('/', protect, upload.single('photo'), validateReport, createReport);
 
 // Parameterized routes (must come after specific routes)
-router.get('/:id', getReportById);
+// Uses optionalAuth to identify user for views tracking (owner doesn't increment views)
+router.get('/:id', optionalAuth, getReportById);
 router.put('/:id', protect, upload.single('photo'), updateReport);
 router.delete('/:id', protect, deleteReport);
 

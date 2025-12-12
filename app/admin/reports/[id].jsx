@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import AdminHeader from '../../../components/admin/AdminHeader';
+import ImageWithFallback from '../../../components/shared/ImageWithFallback';
+import Loader from '../../../components/shared/Loader';
 import ReportStatusBadge from '../../../components/shared/ReportStatusBadge';
 import ValidationBadge from '../../../components/shared/ValidationBadge';
 import adminService from '../../../services/adminService';
@@ -191,11 +193,7 @@ export default function AdminReportDetail() {
         return (
             <View className="flex-1 bg-white">
                 <AdminHeader title="Detalle del Reporte" showBack={true} />
-                <View className="flex-1 items-center justify-center">
-                    <ActivityIndicator size="large" color="#9C27B0" />
-                    <Text className="mt-4 text-gray-500 text-[16px]">Cargando reporte...</Text>
-                    <Text className="mt-2 text-gray-400 text-[12px]">ID: {reportId}</Text>
-                </View>
+                <Loader fullScreen message="Cargando reporte..." />
             </View>
         );
     }
@@ -247,23 +245,14 @@ export default function AdminReportDetail() {
                     </View>
 
                     {/* Photo */}
-                    <View className="w-full h-80 bg-gray-200 rounded-2xl overflow-hidden mb-6 shadow-sm">
-                        {report.photo ? (
-                            <Image
-                                source={{
-                                    uri: report.photo.startsWith('http')
-                                        ? report.photo
-                                        : `http://192.168.0.3:5000/${report.photo.replace(/\\/g, '/')}`
-                                }}
-                                className="w-full h-full"
-                                resizeMode="cover"
-                            />
-                        ) : (
-                            <View className="flex-1 items-center justify-center">
-                                <Ionicons name="image-outline" size={64} color="#BDBDBD" />
-                                <Text className="text-gray-400 mt-2">Sin fotografía</Text>
-                            </View>
-                        )}
+                    <View className="w-full h-80 rounded-2xl overflow-hidden mb-6 shadow-sm">
+                        <ImageWithFallback
+                            uri={report.photo}
+                            className="w-full h-80"
+                            fallbackIcon="image-outline"
+                            fallbackIconSize={64}
+                            fallbackIconColor="#BDBDBD"
+                        />
                     </View>
 
                     {/* Info Card */}
@@ -294,8 +283,8 @@ export default function AdminReportDetail() {
                                         onPress={() => handleStatusChange(status)}
                                         disabled={updatingStatus || report.status === status}
                                         className={`px-4 py-3 rounded-xl mr-2 mb-2 ${report.status === status
-                                                ? 'bg-purple-600'
-                                                : 'bg-gray-100 border border-gray-200'
+                                            ? 'bg-purple-600'
+                                            : 'bg-gray-100 border border-gray-200'
                                             }`}
                                         activeOpacity={0.7}
                                     >

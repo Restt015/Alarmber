@@ -4,13 +4,17 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { MD3LightTheme, PaperProvider } from 'react-native-paper';
 
 import 'react-native-reanimated';
 
+import NotificationToast from '../components/shared/NotificationToast';
 import { useColorScheme } from '../components/useColorScheme';
 import { AuthProvider } from '../context/AuthContext';
+import { NotificationProvider } from '../context/NotificationContext';
 import '../global.css';
+import usePushNotifications from '../hooks/usePushNotifications';
 import '../nativewind-paper';
 
 export {
@@ -67,30 +71,49 @@ const paperTheme = {
   },
 };
 
+// Component that uses push notifications hook (must be inside NotificationProvider)
+function PushNotificationHandler({ children }) {
+  const { notification, clearNotification } = usePushNotifications();
+
+  return (
+    <View style={{ flex: 1 }}>
+      {children}
+      <NotificationToast
+        notification={notification}
+        onDismiss={clearNotification}
+      />
+    </View>
+  );
+}
+
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
     <AuthProvider>
-      <PaperProvider theme={paperTheme}>
-        <ThemeProvider value={DefaultTheme}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: '#F5F5F5' },
-            }}
-          >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="report/create" options={{ headerShown: false }} />
-            <Stack.Screen name="report/success" options={{ headerShown: false }} />
-            <Stack.Screen name="news/index" options={{ headerShown: false }} />
-            <Stack.Screen name="alert/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="auth/login" options={{ headerShown: false }} />
-            <Stack.Screen name="auth/register" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </ThemeProvider>
-      </PaperProvider>
+      <NotificationProvider>
+        <PaperProvider theme={paperTheme}>
+          <ThemeProvider value={DefaultTheme}>
+            <PushNotificationHandler>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: '#F5F5F5' },
+                }}
+              >
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="report/create" options={{ headerShown: false }} />
+                <Stack.Screen name="report/success" options={{ headerShown: false }} />
+                <Stack.Screen name="news/index" options={{ headerShown: false }} />
+                <Stack.Screen name="alert/[id]" options={{ headerShown: false }} />
+                <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+                <Stack.Screen name="auth/register" options={{ headerShown: false }} />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+            </PushNotificationHandler>
+          </ThemeProvider>
+        </PaperProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

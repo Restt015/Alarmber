@@ -41,6 +41,11 @@ const userSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    // Expo Push Notification token
+    expoPushToken: {
+        type: String,
+        default: null
     }
 }, {
     timestamps: true // Adds createdAt and updatedAt
