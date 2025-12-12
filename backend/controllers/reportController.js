@@ -60,10 +60,11 @@ const getReports = async (req, res, next) => {
         // Build query - ONLY SHOW VALIDATED AND ACTIVE REPORTS TO PUBLIC
         const query = {
             validated: true,
-            status: { $in: ['active', 'investigating'] } // Only active reports
+            status: { $in: ['active', 'investigating'] } // Only active/investigating reports
         };
 
-        if (status) {
+        // Note: Public cannot override status to see non-active reports
+        if (status && ['active', 'investigating'].includes(status)) {
             query.status = status;
         }
 
@@ -81,13 +82,14 @@ const getReports = async (req, res, next) => {
         const skip = (pageNum - 1) * limitNum;
 
         // Execute query
-        const reports = await Report.find(query)
-            .populate('reportedBy', 'name email phone')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limitNum);
-
-        const total = await Report.countDocuments(query);
+        const [reports, total] = await Promise.all([
+            Report.find(query)
+                .populate('reportedBy', 'name email phone')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limitNum),
+            Report.countDocuments(query)
+        ]);
 
         res.json({
             success: true,

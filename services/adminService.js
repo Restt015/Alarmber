@@ -5,7 +5,7 @@ const adminService = {
     async getDashboardStats() {
         try {
             const response = await api.get('/admin/dashboard/stats');
-            return response.data;
+            return response; // Return full response
         } catch (error) {
             throw error;
         }
@@ -45,7 +45,7 @@ const adminService = {
     async getUserStats() {
         try {
             const response = await api.get('/admin/users/stats');
-            return response.data;
+            return response;
         } catch (error) {
             throw error;
         }

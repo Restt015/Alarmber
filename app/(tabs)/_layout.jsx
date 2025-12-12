@@ -1,7 +1,7 @@
 // app/(tabs)/_layout.jsx
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
-import { Platform } from "react-native";
+import { Tabs, router } from "expo-router";
+import { Platform, StyleSheet, View } from "react-native";
 
 export default function TabLayout() {
   return (
@@ -58,13 +58,23 @@ export default function TabLayout() {
         }}
       />
 
+      {/* CENTRAL + BUTTON */}
       <Tabs.Screen
-        name="my-reports"
+        name="report-create"
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.push('/report/create');
+          }
+        }}
         options={{
-          title: "Mis Reportes",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="document-text-outline" size={22} color={color} />
+          title: "",
+          tabBarIcon: () => (
+            <View style={styles.centralButton}>
+              <Ionicons name="add" size={28} color="white" />
+            </View>
           ),
+          tabBarLabel: () => null,
         }}
       />
 
@@ -91,6 +101,40 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Hidden screens - not in tab bar */}
+      <Tabs.Screen
+        name="my-reports"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  centralButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#D32F2F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -25,
+    shadowColor: '#D32F2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 4,
+    borderColor: '#fff'
+  }
+});

@@ -27,7 +27,7 @@ export default function AlertsScreen() {
 
       const response = await reportService.getReports(params);
       console.log('✅ Alerts loaded:', response.data?.length || 0);
-      setAlerts(response.data || []);
+      setAlerts(response.data || []); // Axios interceptor unwraps, so response.data is the reports array
     } catch (error) {
       console.error('❌ Error loading alerts:', error);
     } finally {

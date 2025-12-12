@@ -92,7 +92,8 @@ export default function UnifiedReportsView() {
             }
 
             const response = await adminService.getAllReports(queryParams);
-            const newReports = response.data || [];
+            // Axios interceptor already unwraps response.data, so response IS the backend object
+            const newReports = response.data || []; // response.data is the reports array
             const pagination = response.pagination || { totalPages: 1 };
 
             if (shouldReset) {

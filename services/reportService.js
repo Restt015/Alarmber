@@ -34,7 +34,7 @@ const reportService = {
                 },
             });
 
-            return response.data;
+            return response; // Return full response object
         } catch (error) {
             throw error;
         }
@@ -44,7 +44,7 @@ const reportService = {
     async getReports(params = {}) {
         try {
             const response = await api.get('/reports', { params });
-            return response.data;
+            return response; // Return full response { success, data, pagination }
         } catch (error) {
             throw error;
         }
@@ -56,7 +56,7 @@ const reportService = {
             const response = await api.get('/reports/recent', {
                 params: { limit }
             });
-            return response.data;
+            return response; // Return full response
         } catch (error) {
             throw error;
         }
@@ -66,7 +66,7 @@ const reportService = {
     async getReportById(id) {
         try {
             const response = await api.get(`/reports/${id}`);
-            return response.data;
+            return response; // Return full response
         } catch (error) {
             throw error;
         }
@@ -76,7 +76,7 @@ const reportService = {
     async getMyReports() {
         try {
             const response = await api.get('/reports/user/my-reports');
-            return response.data;
+            return response; // Return full response
         } catch (error) {
             throw error;
         }
@@ -125,7 +125,7 @@ const reportService = {
                 },
             });
 
-            return response.data;
+            return response;
         } catch (error) {
             throw error;
         }
@@ -135,7 +135,7 @@ const reportService = {
     async deleteReport(id) {
         try {
             const response = await api.delete(`/reports/${id}`);
-            return response.data;
+            return response;
         } catch (error) {
             throw error;
         }
@@ -145,7 +145,7 @@ const reportService = {
     async updateReportStatus(id, status) {
         try {
             const response = await api.patch(`/reports/${id}/status`, { status });
-            return response.data;
+            return response;
         } catch (error) {
             throw error;
         }

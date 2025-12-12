@@ -2,9 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 // Base URL del backend - ajusta según tu configuración
-const API_BASE_URL = __DEV__
-    ? 'http://192.168.0.3:5000/api'  // Development - Tu IP local para dispositivo físico
-    : 'https://tu-backend.com/api';  // Production
+// Base URL del backend - ajusta según tu configuración
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 // Crear instancia de axios
 const api = axios.create({

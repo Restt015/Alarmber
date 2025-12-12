@@ -7,6 +7,7 @@ const User = require('../models/User');
 exports.getDashboardStats = async (req, res) => {
     try {
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
         // Run all queries in parallel
         const [
@@ -17,25 +18,28 @@ exports.getDashboardStats = async (req, res) => {
             totalUsers,
             activeUsers
         ] = await Promise.all([
-            // Active Reports (validated and active)
-            Report.countDocuments({ status: 'active', validated: true }),
+            // Active Reports (validated and active or investigating)
+            Report.countDocuments({
+                status: { $in: ['active', 'investigating'] },
+                validated: true
+            }),
 
             // Need Follow-up (>7 days old, still active AND validated)
             Report.countDocuments({
-                status: 'active',
+                status: { $in: ['active', 'investigating'] },
                 validated: true,
                 createdAt: { $lt: sevenDaysAgo }
             }),
 
-            // Pending Validation (NOT VALIDATED YET - any status)
+            // Pending Validation (NOT VALIDATED YET - ignore status)
             Report.countDocuments({
                 validated: false
             }),
 
-            // Recently Closed
+            // Recently Closed (closed or resolved in last 30 days)
             Report.countDocuments({
                 status: { $in: ['closed', 'resolved'] },
-                updatedAt: { $gte: sevenDaysAgo }
+                updatedAt: { $gte: thirtyDaysAgo }
             }),
 
             // Total Users
@@ -45,7 +49,7 @@ exports.getDashboardStats = async (req, res) => {
             User.countDocuments({
                 _id: {
                     $in: await Report.distinct('reportedBy', {
-                        createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+                        createdAt: { $gte: thirtyDaysAgo }
                     })
                 }
             })
@@ -63,6 +67,7 @@ exports.getDashboardStats = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
         res.status(500).json({
             success: false,
             message: 'Error fetching dashboard stats',
@@ -89,8 +94,18 @@ exports.getAllReports = async (req, res) => {
         // Build query
         const query = {};
 
-        if (status) query.status = status;
+        if (status) {
+            // Support comma-separated statuses e.g. "closed,resolved"
+            const statuses = status.split(',').map(s => s.trim());
+            if (statuses.length > 1) {
+                query.status = { $in: statuses };
+            } else {
+                query.status = statuses[0];
+            }
+        }
+
         if (validated !== undefined) query.validated = validated === 'true';
+
         if (search) {
             query.$or = [
                 { name: { $regex: search, $options: 'i' } },
@@ -153,7 +168,7 @@ exports.validateReport = async (req, res) => {
         report.validated = true;
         report.validatedBy = req.user._id;
         report.validatedAt = new Date();
-        report.status = 'active'; // Always set to active when validating
+        report.status = 'active'; // Critical: Must be active to show in app
         if (notes) report.notes = notes;
 
         await report.save();

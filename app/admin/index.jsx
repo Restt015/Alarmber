@@ -30,8 +30,8 @@ export default function AdminDashboard() {
                 adminService.getAllReports({ validated: false, limit: 5 })
             ]);
 
-            setStats(statsData.data);
-            setPendingReports(reportsData.data || []);
+            setStats(statsData.data); // statsData.data contains the stats object
+            setPendingReports(reportsData.data || []); // Axios interceptor unwraps, so reportsData.data is the array
         } catch (error) {
             console.error('Error loading dashboard:', error);
         } finally {

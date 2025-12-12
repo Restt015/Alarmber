@@ -13,7 +13,7 @@ export default function MyReportsScreen() {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [currentFilter, setCurrentFilter] = useState('active'); // active, finished, all
+    const [currentFilter, setCurrentFilter] = useState('all'); // active, finished, all (default to all to see pending)
 
     useEffect(() => {
         loadMyReports();
@@ -54,7 +54,7 @@ export default function MyReportsScreen() {
         });
     };
 
-    // Filter reports based on current filter - NO PENDING FILTER
+    // Filter reports based on current filter - SHOW ALL STATES
     const getFilteredReports = () => {
         switch (currentFilter) {
             case 'active':
@@ -63,7 +63,7 @@ export default function MyReportsScreen() {
                 return reports.filter(r => r.status === 'resolved' || r.status === 'closed');
             case 'all':
             default:
-                return reports.filter(r => r.validated); // Only show validated reports
+                return reports; // Show ALL reports, including pending (not validated)
         }
     };
 
@@ -73,7 +73,7 @@ export default function MyReportsScreen() {
     const stats = {
         active: reports.filter(r => r.validated && (r.status === 'active' || r.status === 'investigating')).length,
         finished: reports.filter(r => r.status === 'resolved' || r.status === 'closed').length,
-        all: reports.filter(r => r.validated).length
+        all: reports.length // Total count including pending
     };
 
     const ReportCard = ({ report }) => {
@@ -252,7 +252,7 @@ export default function MyReportsScreen() {
                         <Text className="text-gray-900 text-[18px] font-bold mb-2">
                             {currentFilter === 'active' && 'No tienes reportes activos'}
                             {currentFilter === 'finished' && 'No tienes reportes finalizados'}
-                            {currentFilter === 'all' && 'No tienes reportes publicados'}
+                            {currentFilter === 'all' && 'No tienes reportes creados'}
                         </Text>
                         <Text className="text-gray-500 text-[14px] text-center px-10 mb-6">
                             {currentFilter === 'active' && 'Tus reportes validados aparecerán aquí'}

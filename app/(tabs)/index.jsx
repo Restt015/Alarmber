@@ -1,38 +1,51 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import AlertListItem from '../../components/alerts/AlertListItem';
-import StatCard from '../../components/cards/StatCard';
-import HomeHeader from '../../components/shared/HomeHeader';
-import reportService from '../../services/reportService';
+import AlertListItem from "../../components/alerts/AlertListItem";
+import MyReportsModal from "../../components/modals/MyReportsModal";
+import HomeHeader from "../../components/shared/HomeHeader";
+import reportService from "../../services/reportService";
 
 export default function HomeScreen() {
   const [recentAlerts, setRecentAlerts] = useState([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showMyReportsModal, setShowMyReportsModal] = useState(false);
+  const [myReportsCount, setMyReportsCount] = useState(0);
 
-  // Load on mount
   useEffect(() => {
-    loadRecentAlerts();
+    loadData();
   }, []);
 
-  // Reload when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      loadRecentAlerts();
+      loadData();
     }, [])
   );
 
-  const loadRecentAlerts = async () => {
+  const loadData = async () => {
     try {
       setLoadingAlerts(true);
-      const response = await reportService.getRecentReports(5);
-      console.log('✅ [Home] Recent alerts loaded:', response.data?.length || 0);
-      setRecentAlerts(response.data || []);
+      const [alertsResponse, reportsResponse] = await Promise.all([
+        reportService.getRecentReports(5),
+        reportService.getMyReports().catch(() => ({ data: [] })),
+      ]);
+
+      setRecentAlerts(alertsResponse.data || []);
+      setMyReportsCount(reportsResponse.data?.length || 0);
     } catch (error) {
-      console.error('❌ [Home] Error loading recent alerts:', error);
+      console.error("❌ [Home] Error loading data:", error);
     } finally {
       setLoadingAlerts(false);
       setRefreshing(false);
@@ -41,7 +54,7 @@ export default function HomeScreen() {
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    loadRecentAlerts();
+    loadData();
   }, []);
 
   const formatDate = (dateString) => {
@@ -51,176 +64,316 @@ export default function HomeScreen() {
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffHours < 1) return 'Hace menos de 1 hora';
-    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
-    if (diffDays === 1) return 'Ayer';
+    if (diffHours < 1) return "Hace menos de 1 hora";
+    if (diffHours < 24)
+      return `Hace ${diffHours} hora${diffHours > 1 ? "s" : ""}`;
+    if (diffDays === 1) return "Ayer";
     if (diffDays < 7) return `Hace ${diffDays} días`;
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+    return date.toLocaleDateString("es-ES", {
+      day: "numeric",
+      month: "short",
+    });
   };
 
   const getStatusLabel = (status) => {
     const labels = {
-      active: 'Urgente',
-      investigating: 'En Búsqueda',
-      resolved: 'Encontrado',
-      closed: 'Cerrado'
+      active: "Urgente",
+      investigating: "En Búsqueda",
+      resolved: "Encontrado",
+      closed: "Cerrado",
     };
-    return labels[status] || 'Activo';
+    return labels[status] || "Activo";
   };
 
+  const policeNews = [
+    {
+      id: "1",
+      title: "Operativo policial recupera menor desaparecido",
+      source: "Ministerio de Seguridad Pública",
+      date: "Hace 3 horas",
+      image: "https://via.placeholder.com/120x80",
+      url: "https://example.com/news1",
+    },
+    {
+      id: "2",
+      title: "Nueva alerta Amber activada en zona oeste",
+      source: "Policía Nacional",
+      date: "Hace 5 horas",
+      image: "https://via.placeholder.com/120x80",
+      url: "https://example.com/news2",
+    },
+  ];
+
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-[#F9FAFB]">
       <HomeHeader />
 
       <ScrollView
-        className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={['#D32F2F']}
-            tintColor="#D32F2F"
+            colors={["#000"]}
+            tintColor="#000"
           />
         }
       >
-        <View className="px-5 mt-2">
-          {/* WELCOME */}
-          <View className="py-6">
-            <Text className="text-gray-400 text-[13px] font-semibold uppercase tracking-wider mb-1">
-              Sistema de Alertas
+        <View className="px-5">
+
+          {/* LOGO + SUBTITLE */}
+          <View className="mt-5 mb-6">
+            <Text className="text-[28px] font-bold text-gray-900">
+              ALARMBER
             </Text>
-            <Text className="text-[26px] font-bold text-gray-900">
-              Personas Desaparecidas
+            <Text className="text-gray-500 text-[14px]">
+              Tu red comunitaria de búsqueda en tiempo real
             </Text>
           </View>
 
-          {/* HERO ACTION - CREATE REPORT */}
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => router.push("/report/create")}
-            className="bg-red-600 rounded-2xl p-6 mb-6 shadow-lg"
-            style={{
-              elevation: 4,
-              shadowColor: "#D32F2F",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8
-            }}
-          >
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1">
-                <View className="flex-row items-center mb-2">
-                  <Ionicons name="add-circle" size={24} color="white" />
-                  <Text className="text-white text-[20px] font-bold ml-2">
-                    Crear Reporte
-                  </Text>
-                </View>
-                <Text className="text-red-100 text-[13px]">
-                  Reporta una persona desaparecida
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={24} color="white" />
-            </View>
-          </TouchableOpacity>
-
-          {/* STATS CARDS */}
-          <Text className="font-bold text-gray-900 text-[18px] mb-4">
-            Resumen
+          {/* ==============================
+               PREMIUM DASHBOARD (Uber/iOS)
+             ============================== */}
+          <Text className="font-semibold text-gray-900 text-[18px] mb-3">
+            Panel general
           </Text>
 
-          <View className="flex-row mb-6">
-            <StatCard
-              icon="alert-circle"
-              label="Alertas Activas"
-              count={recentAlerts.length.toString()}
-              color="#D32F2F"
-              badge="Validadas"
-              onPress={() => router.push("/(tabs)/alerts")}
-            />
-            <StatCard
-              icon="people"
-              label="Comunidad"
-              count={recentAlerts.length > 0 ? recentAlerts.length.toString() : "0"}
-              color="#1976D2"
-              onPress={() => router.push("/(tabs)/alerts")}
-            />
-          </View>
+          <View className="flex-row mb-6" style={{ height: 140 }}>
 
-          {/* RECENT ALERTS SECTION */}
-          <View className="mb-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <View>
-                <Text className="font-bold text-gray-900 text-[18px]">
-                  Alertas Recientes
-                </Text>
-                <Text className="text-gray-500 text-[12px] mt-0.5">
-                  Validadas por autoridades
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/alerts')}>
-                <Text className="text-red-600 text-[14px] font-bold">
-                  Ver todas
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {loadingAlerts ? (
-              <View className="py-8 items-center bg-gray-50 rounded-xl">
-                <ActivityIndicator size="small" color="#D32F2F" />
-                <Text className="text-gray-500 text-[13px] mt-2">Cargando alertas...</Text>
-              </View>
-            ) : recentAlerts.length > 0 ? (
-              recentAlerts.map((report) => (
-                <AlertListItem
-                  key={report._id}
-                  alert={{
-                    id: report._id,
-                    name: report.name,
-                    age: report.age,
-                    lastSeen: report.lastLocation,
-                    date: formatDate(report.createdAt),
-                    status: getStatusLabel(report.status),
-                    photo: report.photo
-                  }}
-                  onPress={() => router.push(`/alert/${report._id}`)}
-                />
-              ))
-            ) : (
-              <View className="bg-gray-50 rounded-2xl p-8 items-center border border-gray-100">
-                <View className="w-16 h-16 bg-gray-100 rounded-full items-center justify-center mb-3">
-                  <Ionicons name="notifications-off-outline" size={32} color="#BDBDBD" />
+            {/* CARD – ALERTAS ACTIVAS */}
+            <TouchableOpacity
+              className="flex-1 mr-3"
+              activeOpacity={0.85}
+              onPress={() => router.push("/(tabs)/alerts")}
+            >
+              <View
+                className="h-full rounded-3xl p-5 justify-between"
+                style={{
+                  backgroundColor: "#E53935",
+                  shadowColor: "#E53935",
+                  shadowOpacity: 0.25,
+                  shadowRadius: 14,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: 6,
+                }}
+              >
+                <View className="flex-row justify-between">
+                  <View className="w-12 h-12 bg-white/20 rounded-2xl items-center justify-center">
+                    <Ionicons name="alert-circle" size={28} color="white" />
+                  </View>
+                  <Ionicons name="chevron-forward" size={26} color="white" />
                 </View>
-                <Text className="text-gray-900 font-bold text-[16px] mb-1">
-                  No hay alertas recientes
+
+                <Text className="text-[40px] font-black text-white leading-none mt-1">
+                  {recentAlerts.length}
                 </Text>
-                <Text className="text-gray-400 text-[13px] text-center">
-                  Las alertas validadas aparecerán aquí
+                <Text className="text-white/90 text-[15px] font-semibold">
+                  Alertas activas
                 </Text>
               </View>
-            )}
+            </TouchableOpacity>
+
+            {/* CARD – MIS REPORTES */}
+            <TouchableOpacity
+              className="flex-1"
+              activeOpacity={0.85}
+              onPress={() => setShowMyReportsModal(true)}
+            >
+              <View
+                className="h-full rounded-3xl p-5 justify-between"
+                style={{
+                  backgroundColor: "#1976D2",
+                  shadowColor: "#1976D2",
+                  shadowOpacity: 0.25,
+                  shadowRadius: 14,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: 6,
+                }}
+              >
+                <View className="flex-row justify-between">
+                  <View className="w-12 h-12 bg-white/20 rounded-2xl items-center justify-center">
+                    <Ionicons name="document-text" size={28} color="white" />
+                  </View>
+                  <Ionicons name="chevron-forward" size={26} color="white" />
+                </View>
+
+                <Text className="text-[40px] font-black text-white leading-none mt-1">
+                  {myReportsCount}
+                </Text>
+                <Text className="text-white/90 text-[15px] font-semibold">
+                  Mis reportes
+                </Text>
+              </View>
+            </TouchableOpacity>
+
           </View>
 
-          {/* INFO SECTION */}
-          <View className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-4">
-            <View className="flex-row items-start">
-              <View className="w-10 h-10 bg-blue-600 rounded-full items-center justify-center mr-3">
-                <Ionicons name="information" size={24} color="white" />
+          {/* NEWS SECTION */}
+          <Text className="font-semibold text-gray-900 text-[18px] mb-3 mt-6">
+            Noticias Policiales
+          </Text>
+
+          {policeNews.map((news) => (
+            <TouchableOpacity
+              key={news.id}
+              onPress={() => Linking.openURL(news.url)}
+              activeOpacity={0.85}
+              className="bg-white rounded-3xl mb-5"
+              style={{
+                shadowColor: "#000",
+                shadowOpacity: 0.1,
+                shadowRadius: 10,
+                elevation: 4,
+              }}
+            >
+              <View className="flex-row p-4 items-center">
+                {/* IMAGE */}
+                <View className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden mr-4">
+                  <Image
+                    source={{ uri: news.image }}
+                    className="w-full h-full"
+                    resizeMode="cover"
+                  />
+                </View>
+
+                {/* TEXT INFO */}
+                <View className="flex-1">
+                  <Text className="text-gray-900 font-bold text-[16px] mb-1" numberOfLines={2}>
+                    {news.title}
+                  </Text>
+                  <Text className="text-gray-500 text-[13px] mb-2">{news.source}</Text>
+                  <View className="flex-row items-center mt-1">
+                    <Ionicons name="time-outline" size={14} color="#BDBDBD" />
+                    <Text className="text-gray-400 text-[12px] ml-1">{news.date}</Text>
+                  </View>
+                </View>
+
+                {/* ARROW ICON */}
+                <Ionicons name="chevron-forward" size={22} color="#D32F2F" />
               </View>
-              <View className="flex-1">
-                <Text className="text-blue-900 font-bold text-[15px] mb-1">
-                  ¿Cómo funciona ALARMBER?
-                </Text>
-                <Text className="text-blue-700 text-[13px] leading-5">
-                  Todas las alertas son validadas por autoridades antes de publicarse.
-                  Puedes ayudar reportando información relevante.
-                </Text>
-              </View>
-            </View>
+            </TouchableOpacity>
+          ))}
+
+          {/* ALERTAS RECENTES */}
+          <Text className="font-semibold text-gray-900 text-[18px] mb-3 mt-5">
+            Alertas Recientes
+          </Text>
+
+         {loadingAlerts ? (
+  <View className="py-10 items-center">
+    <ActivityIndicator size="small" color="#D32F2F" />
+    <Text className="text-gray-500 text-[14px] mt-2">Cargando alertas...</Text>
+  </View>
+) : recentAlerts.length > 0 ? (
+  recentAlerts.map((report) => (
+    <TouchableOpacity
+      key={report._id}
+      onPress={() => router.push(`/alert/${report._id}`)}
+      activeOpacity={0.85}
+      className="mb-4 bg-white rounded-2xl p-4 flex-row"
+      style={{
+        shadowColor: "#000",
+        shadowOpacity: 0.05,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 2,
+      }}
+    >
+      {/* FOTO REDONDA */}
+      <View className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 mr-4">
+        <Image
+          source={{ uri: report.photo }}
+          className="w-full h-full"
+          resizeMode="cover"
+        />
+      </View>
+
+      {/* INFO */}
+      <View className="flex-1 justify-center">
+        {/* Nombre + Estado */}
+        <View className="flex-row justify-between items-center mb-1">
+          <Text className="text-[16px] font-semibold text-gray-900" numberOfLines={1}>
+            {report.name}
+          </Text>
+
+          <View className="px-2 py-0.5 rounded-full bg-red-50">
+            <Text className="text-[11px] text-red-600 font-bold uppercase">
+              {getStatusLabel(report.status)}
+            </Text>
           </View>
         </View>
+
+        {/* Ciudad / Última ubicación */}
+        <Text className="text-gray-600 text-[13px]" numberOfLines={1}>
+          Última ubicación: <Text className="font-medium">{report.lastLocation}</Text>
+        </Text>
+
+        {/* Fecha */}
+        <View className="flex-row items-center mt-1">
+          <Ionicons name="time-outline" size={13} color="#999" />
+          <Text className="text-gray-400 text-[12px] ml-1">
+            {formatDate(report.createdAt)}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  ))
+) : (
+  <View
+    className="p-10 rounded-2xl items-center bg-white"
+    style={{
+      shadowColor: "#000",
+      shadowOpacity: 0.04,
+      shadowRadius: 5,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    }}
+  >
+    <Ionicons name="notifications-off-outline" size={45} color="#BDBDBD" />
+    <Text className="font-semibold text-gray-900 text-[17px] mt-3">
+      No hay alertas recientes
+    </Text>
+    <Text className="text-gray-500 text-[14px] text-center leading-5 mt-1 px-8">
+      Cuando se validen nuevas alertas, aparecerán en esta sección.
+    </Text>
+  </View>
+)}
+
+
+          {/* INFO BOX */}
+          <View
+            className="bg-white rounded-3xl p-5 mt-8 mb-12"
+            style={{
+              shadowColor: "#000",
+              shadowOpacity: 0.06,
+              shadowRadius: 10,
+              elevation: 2,
+            }}
+          >
+            <View className="flex-row">
+              <View className="w-12 h-12 bg-blue-600 rounded-2xl items-center justify-center mr-4">
+                <Ionicons name="information" size={26} color="white" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-gray-900 font-semibold text-[16px]">
+                  ¿Cómo funciona ALARMBER?
+                </Text>
+                <Text className="text-gray-600 text-[14px] mt-1 leading-5">
+                  Todas las alertas son verificadas por autoridades antes de publicarse.
+                  Puedes apoyar compartiendo información útil en tiempo real.
+                </Text>
+              </View>
+            </View>
+          </View>
+
+        </View>
       </ScrollView>
+
+      <MyReportsModal
+        visible={showMyReportsModal}
+        onClose={() => setShowMyReportsModal(false)}
+      />
     </View>
   );
 }
