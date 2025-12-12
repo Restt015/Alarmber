@@ -1,6 +1,5 @@
 const Report = require('../models/Report');
 const User = require('../models/User');
-const { notifyReportValidation, notifyReportStatusChange } = require('../services/notificationService');
 
 // @desc    Get dashboard statistics
 // @route   GET /api/admin/dashboard/stats
@@ -174,11 +173,6 @@ exports.validateReport = async (req, res) => {
 
         await report.save();
 
-        // Send notification to report owner
-        if (report.reportedBy) {
-            await notifyReportValidation(report.reportedBy, report, true);
-        }
-
         console.log('✅ Report validated and set to active:', report._id);
 
         res.status(200).json({
@@ -316,11 +310,6 @@ exports.updateReportStatus = async (req, res) => {
 
         report.status = status;
         await report.save();
-
-        // Send notification to report owner
-        if (report.reportedBy) {
-            await notifyReportStatusChange(report.reportedBy, report, status);
-        }
 
         res.status(200).json({
             success: true,

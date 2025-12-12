@@ -126,7 +126,7 @@ export default function LoginForm() {
             ) : null}
 
             <View className="items-end mb-6">
-                <Text className="text-gray-500 font-medium text-[13px]">
+                <Text className="text-white/80 font-medium text-[13px]">
                     ¿Olvidaste tu contraseña?
                 </Text>
             </View>
@@ -136,9 +136,10 @@ export default function LoginForm() {
                 onPress={handleLogin}
                 loading={loading}
                 disabled={loading}
-                buttonColor="#D32F2F"
+                buttonColor="white"
                 className="rounded-full py-1.5 shadow-none"
-                labelStyle={{ fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5 }}
+                contentStyle={{ height: 50 }}
+                labelStyle={{ fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5, color: '#D32F2F' }}
             >
                 Iniciar Sesión
             </Button>

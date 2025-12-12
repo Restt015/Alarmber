@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useEffect, useState } from 'react';
 import notificationService from '../services/notificationService';
 import { useAuth } from './AuthContext';
 
@@ -133,7 +133,7 @@ export const NotificationProvider = ({ children }) => {
         }
     }, [loading, hasMore, page, fetchNotifications]);
 
-    // Add a new notification to the list (for real-time updates)
+    // Add a new notification to the list (for internal use)
     const addNotification = useCallback((notification) => {
         setNotifications(prev => [notification, ...prev]);
         setUnreadCount(prev => prev + 1);
@@ -163,11 +163,6 @@ export const NotificationProvider = ({ children }) => {
 };
 
 export const useNotifications = () => {
-    const context = useContext(NotificationContext);
-    if (!context) {
-        throw new Error('useNotifications must be used within a NotificationProvider');
-    }
-    return context;
 };
 
 export default NotificationContext;

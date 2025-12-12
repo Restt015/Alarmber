@@ -10,7 +10,9 @@ export const AuthProvider = ({ children }) => {
 
     // Check if user is logged in on app start
     useEffect(() => {
-        checkAuth();
+        // We explicitly DON'T check auth here to force welcome screen
+        // checkAuth(); 
+        setLoading(false);
     }, []);
 
     const checkAuth = async () => {

@@ -160,9 +160,10 @@ export default function RegisterForm() {
                 onPress={handleRegister}
                 loading={loading}
                 disabled={loading}
-                buttonColor="#D32F2F"
+                buttonColor="white"
                 className="rounded-full py-1.5 shadow-none mt-6"
-                labelStyle={{ fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5 }}
+                contentStyle={{ height: 50 }}
+                labelStyle={{ fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5, color: '#D32F2F' }}
             >
                 Registrarse
             </Button>
