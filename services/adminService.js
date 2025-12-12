@@ -59,6 +59,38 @@ const adminService = {
         } catch (error) {
             throw error;
         }
+    },
+
+    // Get finished reports (closed/resolved)
+    async getFinishedReports(params = {}) {
+        try {
+            const response = await api.get('/admin/reports', {
+                params: { ...params, status: 'closed,resolved' }
+            });
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Update report status
+    async updateReportStatus(reportId, status) {
+        try {
+            const response = await api.patch(`/admin/reports/${reportId}/status`, { status });
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Delete report (admin)
+    async deleteReport(reportId) {
+        try {
+            const response = await api.delete(`/reports/${reportId}`);
+            return response;
+        } catch (error) {
+            throw error;
+        }
     }
 };
 

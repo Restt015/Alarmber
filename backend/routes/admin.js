@@ -5,6 +5,7 @@ const {
     getAllReports,
     validateReport,
     assignReport,
+    updateReportStatus,
     getUserStats,
     getAllUsers
 } = require('../controllers/adminController');
@@ -17,6 +18,7 @@ router.get('/dashboard/stats', protect, admin, getDashboardStats);
 router.get('/reports', protect, admin, getAllReports);
 router.patch('/reports/:id/validate', protect, admin, validateReport);
 router.patch('/reports/:id/assign', protect, admin, assignReport);
+router.patch('/reports/:id/status', protect, admin, updateReportStatus);
 
 // User management
 router.get('/users/stats', protect, admin, getUserStats);

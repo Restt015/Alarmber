@@ -20,16 +20,16 @@ exports.getDashboardStats = async (req, res) => {
             // Active Reports (validated and active)
             Report.countDocuments({ status: 'active', validated: true }),
 
-            // Need Follow-up (>7 days old, still active)
+            // Need Follow-up (>7 days old, still active AND validated)
             Report.countDocuments({
                 status: 'active',
+                validated: true,
                 createdAt: { $lt: sevenDaysAgo }
             }),
 
-            // Pending Validation
+            // Pending Validation (NOT VALIDATED YET - any status)
             Report.countDocuments({
-                validated: false,
-                status: { $in: ['active', 'investigating'] }
+                validated: false
             }),
 
             // Recently Closed
@@ -149,12 +149,16 @@ exports.validateReport = async (req, res) => {
             });
         }
 
+        // Validate and set to active status
         report.validated = true;
         report.validatedBy = req.user._id;
         report.validatedAt = new Date();
+        report.status = 'active'; // Always set to active when validating
         if (notes) report.notes = notes;
 
         await report.save();
+
+        console.log('✅ Report validated and set to active:', report._id);
 
         res.status(200).json({
             success: true,
@@ -162,6 +166,7 @@ exports.validateReport = async (req, res) => {
             message: 'Report validated successfully'
         });
     } catch (error) {
+        console.error('❌ Error validating report:', error);
         res.status(500).json({
             success: false,
             message: 'Error validating report',
@@ -258,6 +263,48 @@ exports.getUserStats = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error fetching user stats',
+            error: error.message
+        });
+    }
+};
+
+// @desc    Update report status
+// @route   PATCH /api/admin/reports/:id/status
+// @access  Private/Admin
+exports.updateReportStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+
+        // Validate status
+        const validStatuses = ['active', 'investigating', 'resolved', 'closed'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid status. Must be one of: active, investigating, resolved, closed'
+            });
+        }
+
+        const report = await Report.findById(req.params.id);
+
+        if (!report) {
+            return res.status(404).json({
+                success: false,
+                message: 'Report not found'
+            });
+        }
+
+        report.status = status;
+        await report.save();
+
+        res.status(200).json({
+            success: true,
+            data: report,
+            message: 'Report status updated successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error updating report status',
             error: error.message
         });
     }

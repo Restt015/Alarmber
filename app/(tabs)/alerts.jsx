@@ -1,5 +1,5 @@
-import { router } from "expo-router";
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, View } from 'react-native';
 import AlertCard from '../../components/cards/AlertCard';
 import EmptyState from '../../components/shared/EmptyState';
@@ -26,9 +26,10 @@ export default function AlertsScreen() {
       }
 
       const response = await reportService.getReports(params);
+      console.log('✅ Alerts loaded:', response.data?.length || 0);
       setAlerts(response.data || []);
     } catch (error) {
-      console.error('Error loading alerts:', error);
+      console.error('❌ Error loading alerts:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -38,6 +39,13 @@ export default function AlertsScreen() {
   useEffect(() => {
     loadAlerts();
   }, []);
+
+  // Reload when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadAlerts(true);
+    }, [searchQuery])
+  );
 
   useEffect(() => {
     if (searchQuery.trim() || searchQuery === '') {

@@ -1,6 +1,6 @@
 // app/(tabs)/_layout.jsx
-import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 import { Platform } from "react-native";
 
 export default function TabLayout() {
@@ -59,11 +59,11 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="notifications"
+        name="my-reports"
         options={{
-          title: "Notif.",
+          title: "Mis Reportes",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="notifications-outline" size={22} color={color} />
+            <Ionicons name="document-text-outline" size={22} color={color} />
           ),
         }}
       />
