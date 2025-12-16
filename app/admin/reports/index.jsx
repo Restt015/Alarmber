@@ -165,9 +165,6 @@ export default function UnifiedReportsView() {
                     </TouchableOpacity>
 
                     <View className="flex-1">
-                        <Text className="text-gray-500 text-[11px] font-medium uppercase tracking-wide">
-                            {currentConfig.subtitle}
-                        </Text>
                         <Text
                             className="text-gray-900 font-semibold"
                             style={{ fontSize: 28, letterSpacing: -0.5, fontWeight: '700' }}
@@ -175,6 +172,16 @@ export default function UnifiedReportsView() {
                             Reportes
                         </Text>
                     </View>
+
+                    {/* Create Report Button */}
+                    <TouchableOpacity
+                        onPress={() => router.push('/admin/reports/create')}
+                        className="w-9 h-9 rounded-full items-center justify-center"
+                        style={{ backgroundColor: '#D32F2F' }}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="add" size={24} color="white" />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Search Bar - iOS Style */}
@@ -271,9 +278,8 @@ export default function UnifiedReportsView() {
                                 report={item}
                                 onPress={() => router.push(`/admin/reports/${item._id}`)}
                                 onValidate={handleValidateReport}
-                                showActions={activeFilter === 'pending'}
-                                showStatus={true}
-                                accentColor={currentConfig.color}
+                                currentFilter={activeFilter}
+                                showActions={true}
                             />
                         </View>
                     )}

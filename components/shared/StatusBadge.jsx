@@ -1,38 +1,77 @@
 import { Text, View } from 'react-native';
+import { getStatusColors, theme } from '../../constants/theme';
+
+// Status label translations
+const STATUS_LABELS = {
+    active: 'Activo',
+    investigating: 'En Búsqueda',
+    resolved: 'Resuelto',
+    closed: 'Cerrado',
+    critical: 'Urgente',
+    new: 'Nuevo',
+    pending: 'Pendiente',
+};
 
 export default function StatusBadge({ status }) {
-    let bg = "bg-gray-100";
-    let text = "text-gray-600";
-    let label = status;
+    // Normalize status to lowercase
+    const normalizedStatus = status?.toLowerCase() || 'closed';
 
-    switch (status?.toLowerCase()) {
+    // Map various status names to theme keys
+    let themeKey = 'closed';
+    switch (normalizedStatus) {
+        case 'active':
         case 'urgente':
         case 'critical':
-            bg = "bg-red-50";
-            text = "text-red-700";
+        case 'nuevo':
+            themeKey = 'active';
             break;
+        case 'investigating':
         case 'en búsqueda':
-        case 'active':
-            bg = "bg-blue-50";
-            text = "text-blue-700";
+        case 'en busqueda':
+        case 'buscando':
+            themeKey = 'investigating';
             break;
-        case 'reciente':
+        case 'resolved':
+        case 'resuelto':
+        case 'encontrado':
         case 'new':
-            bg = "bg-green-50";
-            text = "text-green-700";
+        case 'reciente':
+            themeKey = 'resolved';
             break;
+        case 'closed':
+        case 'cerrado':
         case 'pendiente':
-            bg = "bg-orange-50";
-            text = "text-orange-700";
-            break;
         default:
-            bg = "bg-gray-100";
-            text = "text-gray-600";
+            themeKey = 'closed';
     }
 
+    // Get colors from theme
+    const colors = getStatusColors(themeKey);
+
+    // Get display label
+    const label = STATUS_LABELS[normalizedStatus] || status || 'Desconocido';
+
     return (
-        <View className={`px-2.5 py-1 rounded-md ${bg} self-start`}>
-            <Text className={`text-[11px] font-bold uppercase tracking-wide ${text}`}>
+        <View
+            style={{
+                backgroundColor: colors.bg,
+                borderColor: colors.border,
+                borderWidth: 1,
+                paddingHorizontal: theme.spacing.sm + 2,
+                paddingVertical: theme.spacing.xs,
+                borderRadius: theme.borderRadius.sm,
+                alignSelf: 'flex-start',
+            }}
+        >
+            <Text
+                style={{
+                    color: colors.text,
+                    fontSize: 11,
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                }}
+            >
                 {label}
             </Text>
         </View>

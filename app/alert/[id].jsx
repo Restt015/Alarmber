@@ -222,9 +222,40 @@ export default function AlertDetailScreen() {
             <Text className="text-[28px] font-black text-gray-900 tracking-tight leading-8 mb-1">
               {report.name}
             </Text>
-            <Text className="text-[16px] text-gray-500 font-medium mb-6">
-              Edad: {report.age} años
-            </Text>
+            <View className="flex-row items-center mb-6">
+              <Text className="text-[16px] text-gray-500 font-medium">
+                Edad: {report.age} años
+              </Text>
+              {report.gender && (
+                <Text className="text-[16px] text-gray-500 font-medium ml-2">
+                  • {report.gender === 'male' ? 'Hombre' : report.gender === 'female' ? 'Mujer' : 'Otro'}
+                </Text>
+              )}
+              {report.priority && report.priority !== 'media' && (
+                <View
+                  className="ml-2 px-2 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: report.priority === 'alta' ? '#FFEBEE' : '#FFF3E0'
+                  }}
+                >
+                  <Text
+                    className="text-[11px] font-bold uppercase"
+                    style={{
+                      color: report.priority === 'alta' ? '#D32F2F' : '#FF9800'
+                    }}
+                  >
+                    {report.priority === 'alta' ? '🔴 Alta' : '🟡 Media'}
+                  </Text>
+                </View>
+              )}
+              {report.createdByAdmin && (
+                <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#E3F2FD' }}>
+                  <Text className="text-[11px] font-bold" style={{ color: '#1976D2' }}>
+                    👮 Reporte Oficial
+                  </Text>
+                </View>
+              )}
+            </View>
 
             <InfoRow
               icon="location-outline"
@@ -251,49 +282,39 @@ export default function AlertDetailScreen() {
                 icon="alert-circle-outline"
                 label="Circunstancias"
                 value={report.circumstances}
+              />
+            )}
+            {report.contactPhone && (
+              <InfoRow
+                icon="call-outline"
+                label="Teléfono de contacto"
+                value={report.contactPhone}
+              />
+            )}
+            {report.contactEmail && (
+              <InfoRow
+                icon="mail-outline"
+                label="Email de contacto"
+                value={report.contactEmail}
                 isLast={true}
               />
             )}
-
-            {/* Contact Information (if available) */}
-            {(report.contactPhone || report.contactEmail) && (
-              <View className="mt-6 pt-6 border-t border-gray-100">
-                <Text className="text-[16px] font-bold text-gray-900 mb-4">
-                  Información de Contacto
-                </Text>
-                {report.contactPhone && (
-                  <InfoRow
-                    icon="call-outline"
-                    label="Teléfono"
-                    value={report.contactPhone}
-                  />
-                )}
-                {report.contactEmail && (
-                  <InfoRow
-                    icon="mail-outline"
-                    label="Email"
-                    value={report.contactEmail}
-                    isLast={true}
-                  />
-                )}
-              </View>
-            )}
-
-            {/* Validation Info (if validated) */}
-            {report.validated && report.validatedAt && (
-              <View className="mt-6 bg-green-50 rounded-2xl p-4">
-                <View className="flex-row items-center">
-                  <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                  <Text className="text-green-800 font-bold text-[15px] ml-2">
-                    Reporte Validado
-                  </Text>
-                </View>
-                <Text className="text-green-700 text-[13px] mt-2">
-                  Verificado el {formatDate(report.validatedAt)}
-                </Text>
-              </View>
-            )}
           </View>
+
+          {/* Validation Info (if validated) */}
+          {report.validated && report.validatedAt && (
+            <View className="mt-6 bg-green-50 rounded-2xl p-4">
+              <View className="flex-row items-center">
+                <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                <Text className="text-green-800 font-bold text-[15px] ml-2">
+                  Reporte Validado
+                </Text>
+              </View>
+              <Text className="text-green-700 text-[13px] mt-2">
+                Verificado el {formatDate(report.validatedAt)}
+              </Text>
+            </View>
+          )}
 
           {/* COMMENTS SECTION */}
           <View className="p-5 bg-white border-t border-gray-100 pb-10">
@@ -309,10 +330,10 @@ export default function AlertDetailScreen() {
               </Text>
             </View>
           </View>
-        </ScrollView>
+        </ScrollView >
 
         <CommentInput />
-      </KeyboardAvoidingView>
-    </View>
+      </KeyboardAvoidingView >
+    </View >
   );
 }

@@ -33,16 +33,25 @@ const reportSchema = new mongoose.Schema({
         default: '',
         maxlength: [1000, 'Circumstances cannot be more than 1000 characters']
     },
+    gender: {
+        type: String,
+        enum: ['male', 'female', 'other'],
+        default: 'other'
+    },
 
     // Additional Information
+    createdByAdmin: {
+        type: Boolean,
+        default: false
+    },
     photo: {
         type: String,
         default: null
     },
     relationship: {
         type: String,
-        enum: ['family', 'friend', 'partner', 'neighbor', 'coworker', 'other'],
-        default: null
+        enum: ['family', 'friend', 'partner', 'neighbor', 'coworker', 'official', 'other'],
+        default: 'other'
     },
     reportedBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -85,8 +94,8 @@ const reportSchema = new mongoose.Schema({
     },
     priority: {
         type: String,
-        enum: ['low', 'medium', 'high', 'critical'],
-        default: 'medium'
+        enum: ['baja', 'media', 'alta', 'critical'],
+        default: 'media'
     },
 
     // Admin/Validation Fields

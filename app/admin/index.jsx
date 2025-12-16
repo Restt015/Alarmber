@@ -181,11 +181,76 @@ export default function AdminDashboard() {
                     <Text className="text-[18px] font-bold text-gray-900 mb-3">
                         Acceso Rápido
                     </Text>
+
+                    {/* Row 1: Validación + Noticias */}
+                    <View className="flex-row mb-3">
+                        {/* Validation Queue Card */}
+                        <TouchableOpacity
+                            onPress={() => router.push('/admin/validation')}
+                            className="flex-1 rounded-2xl p-4 mr-2"
+                            style={{
+                                backgroundColor: '#D32F2F',
+                                shadowColor: '#D32F2F',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 8,
+                                elevation: 8
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <View className="flex-row items-center justify-between mb-3">
+                                <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center">
+                                    <Ionicons name="hourglass" size={24} color="white" />
+                                </View>
+                                {stats?.pendingValidation > 0 && (
+                                    <View className="bg-white px-2 py-1 rounded-full">
+                                        <Text className="text-red-600 font-bold text-[12px]">{stats.pendingValidation}</Text>
+                                    </View>
+                                )}
+                            </View>
+                            <Text className="text-white font-bold text-[16px] mb-1">
+                                Validación
+                            </Text>
+                            <Text className="text-white/80 text-[12px]">
+                                Cola de aprobación
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* News Card */}
+                        <TouchableOpacity
+                            onPress={() => router.push('/admin/news')}
+                            className="flex-1 rounded-2xl p-4 ml-2"
+                            style={{
+                                backgroundColor: '#FF9800',
+                                shadowColor: '#FF9800',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 8,
+                                elevation: 8
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <View className="flex-row items-center justify-between mb-3">
+                                <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center">
+                                    <Ionicons name="newspaper" size={24} color="white" />
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="white" />
+                            </View>
+                            <Text className="text-white font-bold text-[16px] mb-1">
+                                Noticias
+                            </Text>
+                            <Text className="text-white/80 text-[12px]">
+                                Publicar alertas
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Row 2: Usuarios + Finalizados */}
                     <View className="flex-row">
                         {/* Users Card */}
                         <TouchableOpacity
                             onPress={() => router.push('/admin/users')}
-                            className="flex-1 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 mr-2 shadow-lg"
+                            className="flex-1 rounded-2xl p-4 mr-2"
                             style={{
                                 backgroundColor: '#1976D2',
                                 shadowColor: '#1976D2',
@@ -213,7 +278,7 @@ export default function AdminDashboard() {
                         {/* Finished Reports Card */}
                         <TouchableOpacity
                             onPress={() => router.push('/admin/reports/finished')}
-                            className="flex-1 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 ml-2 shadow-lg"
+                            className="flex-1 rounded-2xl p-4 ml-2"
                             style={{
                                 backgroundColor: '#4CAF50',
                                 shadowColor: '#4CAF50',

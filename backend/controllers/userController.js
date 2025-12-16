@@ -143,8 +143,116 @@ const changePassword = async (req, res, next) => {
     }
 };
 
+// @desc    Get user by ID (Admin only)
+// @route   GET /api/users/:id
+// @access  Private/Admin
+const getUserById = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                ...user.toJSON(),
+                profileImage: getPhotoUrl(user.profileImage)
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update user role (Admin only)
+// @route   PATCH /api/users/:id/role
+// @access  Private/Admin
+const updateRole = async (req, res, next) => {
+    try {
+        const { role } = req.body;
+
+        if (!['user', 'admin'].includes(role)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Rol inválido'
+            });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { role },
+            { new: true, runValidators: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado'
+            });
+        }
+
+        console.log('✅ Role updated for user:', user.email, '→', role);
+
+        res.status(200).json({
+            success: true,
+            message: 'Rol actualizado exitosamente',
+            data: user.toJSON()
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update user status (Admin only)
+// @route   PATCH /api/users/:id/status
+// @access  Private/Admin
+const updateStatus = async (req, res, next) => {
+    try {
+        const { isActive } = req.body;
+
+        if (typeof isActive !== 'boolean') {
+            return res.status(400).json({
+                success: false,
+                message: 'isActive debe ser un booleano'
+            });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { isActive },
+            { new: true, runValidators: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado'
+            });
+        }
+
+        console.log('✅ Status updated for user:', user.email, '→', isActive ? 'active' : 'inactive');
+
+        res.status(200).json({
+            success: true,
+            message: isActive ? 'Cuenta reactivada' : 'Cuenta desactivada',
+            data: user.toJSON()
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getProfile,
     updateProfile,
-    changePassword
+    changePassword,
+    getUserById,
+    updateRole,
+    updateStatus
 };
+
