@@ -52,7 +52,8 @@ app.get('/', (req, res) => {
             alerts: '/api/alerts',
             news: '/api/news',
             notifications: '/api/notifications',
-            admin: '/api/admin'
+            admin: '/api/admin',
+            messages: '/api/reports/:reportId/messages'
         }
     });
 });
@@ -60,9 +61,15 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api', require('./routes/messages')); // Messages routes (mounted at /api to support full path)
 app.use('/api/alerts', alertRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/admin', require('./routes/admin'));
+
+// Initialize WebSocket Service
+const websocketService = require('./services/websocketService');
+const WS_PORT = process.env.WS_PORT || 5001;
+websocketService.initialize(WS_PORT);
 
 // Error handling
 app.use(notFound);
