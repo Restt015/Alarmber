@@ -94,8 +94,8 @@ const reportSchema = new mongoose.Schema({
     },
     priority: {
         type: String,
-        enum: ['baja', 'media', 'alta', 'critical'],
-        default: 'media'
+        enum: ['low', 'medium', 'high', 'critical'],
+        default: 'medium'
     },
 
     // Admin/Validation Fields

@@ -9,11 +9,11 @@ import { useAuth } from '../../../context/AuthContext';
 import newsService from '../../../services/newsService';
 
 const CATEGORIES = [
-    { value: 'alerta', label: 'Alerta' },
-    { value: 'operativo', label: 'Operativo' },
-    { value: 'prevencion', label: 'Prevención' },
-    { value: 'comunidad', label: 'Comunidad' },
-    { value: 'oficial', label: 'Comunicado Oficial' },
+    { value: 'alert', label: 'Alerta' },
+    { value: 'update', label: 'Actualización' },
+    { value: 'prevention', label: 'Prevención' },
+    { value: 'success', label: 'Éxito' },
+    { value: 'general', label: 'General' },
 ];
 
 export default function CreateNews() {
@@ -22,7 +22,7 @@ export default function CreateNews() {
     const [title, setTitle] = useState('');
     const [summary, setSummary] = useState('');
     const [content, setContent] = useState('');
-    const [category, setCategory] = useState('alerta');
+    const [category, setCategory] = useState('alert');
     const [image, setImage] = useState(null);
     const [isPublished, setIsPublished] = useState(false);
 

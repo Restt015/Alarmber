@@ -231,20 +231,20 @@ export default function AlertDetailScreen() {
                   • {report.gender === 'male' ? 'Hombre' : report.gender === 'female' ? 'Mujer' : 'Otro'}
                 </Text>
               )}
-              {report.priority && report.priority !== 'media' && (
+              {report.priority && report.priority !== 'medium' && report.priority !== 'low' && (
                 <View
                   className="ml-2 px-2 py-0.5 rounded-full"
                   style={{
-                    backgroundColor: report.priority === 'alta' ? '#FFEBEE' : '#FFF3E0'
+                    backgroundColor: report.priority === 'high' || report.priority === 'critical' ? '#FFEBEE' : '#FFF3E0'
                   }}
                 >
                   <Text
                     className="text-[11px] font-bold uppercase"
                     style={{
-                      color: report.priority === 'alta' ? '#D32F2F' : '#FF9800'
+                      color: report.priority === 'high' || report.priority === 'critical' ? '#D32F2F' : '#FF9800'
                     }}
                   >
-                    {report.priority === 'alta' ? '🔴 Alta' : '🟡 Media'}
+                    {report.priority === 'high' || report.priority === 'critical' ? '🔴 Alta' : '🟡 Media'}
                   </Text>
                 </View>
               )}

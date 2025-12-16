@@ -19,9 +19,9 @@ import { useAuth } from '../../../context/AuthContext';
 import reportService from '../../../services/reportService';
 
 const PRIORITY_OPTIONS = [
-    { value: 'alta', label: 'Alta Prioridad', color: theme.colors.primary.main },
-    { value: 'media', label: 'Media', color: theme.colors.warning.main },
-    { value: 'baja', label: 'Baja', color: theme.colors.gray[500] },
+    { value: 'high', label: 'Alta Prioridad', color: theme.colors.primary.main },
+    { value: 'medium', label: 'Media', color: theme.colors.warning.main },
+    { value: 'low', label: 'Baja', color: theme.colors.gray[500] },
 ];
 
 export default function AdminCreateReport() {
@@ -35,7 +35,7 @@ export default function AdminCreateReport() {
         clothing: "",
         circumstances: "",
         relationship: "official",
-        priority: "media",
+        priority: "medium",
         contactPhone: "",
         contactEmail: "",
     });
