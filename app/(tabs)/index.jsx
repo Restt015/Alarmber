@@ -40,12 +40,30 @@ export default function HomeScreen() {
     try {
       setLoadingAlerts(true);
       setError(null);
-      const [alertsResponse, reportsResponse] = await Promise.all([
-        reportService.getRecentReports(5),
+
+      // Fetch from both endpoints to get all validated reports
+      const [activeResponse, finishedResponse, reportsResponse] = await Promise.all([
+        reportService.getReports({}),
+        reportService.getFinishedReports({}),
         reportService.getMyReports().catch(() => ({ data: [] })),
       ]);
 
-      setRecentAlerts(alertsResponse.data || []);
+      // Combine all reports
+      const allReports = [
+        ...(activeResponse.data || []),
+        ...(finishedResponse || [])
+      ];
+
+      // Filter for "active" reports: validated && status !== 'resolved'
+      const activeAlerts = allReports.filter(report =>
+        report.validated === true && report.status !== 'resolved'
+      );
+
+      // Sort by createdAt descending and take the 5 most recent
+      activeAlerts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const recentActiveAlerts = activeAlerts.slice(0, 5);
+
+      setRecentAlerts(recentActiveAlerts);
       setMyReportsCount(reportsResponse.data?.length || 0);
     } catch (err) {
       console.error("❌ [Home] Error loading data:", err);
@@ -125,17 +143,6 @@ export default function HomeScreen() {
         }
       >
         <View className="px-5">
-
-          {/* LOGO + SUBTITLE */}
-          <View className="mt-5 mb-6">
-            <Text className="text-[28px] font-bold text-gray-900">
-              ALARMBER
-            </Text>
-            <Text className="text-gray-500 text-[14px]">
-              Tu red comunitaria de búsqueda en tiempo real
-            </Text>
-          </View>
-
           {/* ==============================
                PREMIUM DASHBOARD (Uber/iOS)
              ============================== */}

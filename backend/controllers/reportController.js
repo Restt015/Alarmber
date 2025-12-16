@@ -29,6 +29,30 @@ const getPhotoUrl = (photoPath) => {
     return `${baseUrl}/${cleanPath}`;
 };
 
+// Helper function to transform a report object with all necessary data
+const transformReport = (report) => {
+    const reportObj = report.toObject ? report.toObject() : { ...report };
+
+    // Transform report photo URL
+    if (reportObj.photo) {
+        reportObj.photo = getPhotoUrl(reportObj.photo);
+    }
+
+    // Transform reportedBy data if present
+    if (reportObj.reportedBy) {
+        // Transform profileImage URL
+        if (reportObj.reportedBy.profileImage) {
+            reportObj.reportedBy.profileImage = getPhotoUrl(reportObj.reportedBy.profileImage);
+        }
+        // Add activity status calculated by backend
+        if (reportObj.reportedBy.lastActive) {
+            reportObj.reportedBy.activityStatus = User.getActivityStatus(reportObj.reportedBy.lastActive);
+        }
+    }
+
+    return reportObj;
+};
+
 // @desc    Create a new report
 // @route   POST /api/reports
 // @access  Private
@@ -42,7 +66,8 @@ const createReport = async (req, res, next) => {
             clothing,
             circumstances,
             contactPhone,
-            contactEmail
+            contactEmail,
+            relationship
         } = req.body;
 
         const report = await Report.create({
@@ -54,9 +79,13 @@ const createReport = async (req, res, next) => {
             circumstances,
             contactPhone,
             contactEmail,
+            relationship,
             photo: req.file ? req.file.path : null,
             reportedBy: req.user._id
         });
+
+        // Update user's lastActive timestamp
+        await User.findByIdAndUpdate(req.user._id, { lastActive: new Date() });
 
         // Transform photo path to full URL
         if (report.photo) {
@@ -113,25 +142,19 @@ const getReports = async (req, res, next) => {
         // Execute query
         const [reports, total] = await Promise.all([
             Report.find(query)
-                .populate('reportedBy', 'name email phone')
+                .populate('reportedBy', 'name email phone profileImage lastActive')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limitNum),
             Report.countDocuments(query)
         ]);
 
-        // Transform photo paths to full URLs
-        const reportsWithFullUrls = reports.map(report => {
-            const reportObj = report.toObject();
-            if (reportObj.photo) {
-                reportObj.photo = getPhotoUrl(reportObj.photo);
-            }
-            return reportObj;
-        });
+        // Transform reports with full URLs and activity status
+        const transformedReports = reports.map(transformReport);
 
         res.json({
             success: true,
-            data: reportsWithFullUrls,
+            data: transformedReports,
             pagination: {
                 currentPage: pageNum,
                 totalPages: Math.ceil(total / limitNum),
@@ -157,22 +180,16 @@ const getRecentReports = async (req, res, next) => {
             validated: true,
             status: { $in: ['active', 'investigating'] }
         })
-            .populate('reportedBy', 'name email phone')
+            .populate('reportedBy', 'name email phone profileImage lastActive')
             .sort({ createdAt: -1 })
             .limit(limitNum);
 
-        // Transform photo paths to full URLs
-        const reportsWithFullUrls = reports.map(report => {
-            const reportObj = report.toObject();
-            if (reportObj.photo) {
-                reportObj.photo = getPhotoUrl(reportObj.photo);
-            }
-            return reportObj;
-        });
+        // Transform reports with full URLs and activity status
+        const transformedReports = reports.map(transformReport);
 
         res.json({
             success: true,
-            data: reportsWithFullUrls
+            data: transformedReports
         });
     } catch (error) {
         console.error('❌ Error getting recent reports:', error);
@@ -201,25 +218,19 @@ const getFinishedReports = async (req, res, next) => {
         const skip = (pageNum - 1) * limitNum;
 
         const reports = await Report.find(query)
-            .populate('reportedBy', 'name email phone')
+            .populate('reportedBy', 'name email phone profileImage lastActive')
             .sort({ updatedAt: -1 })
             .skip(skip)
             .limit(limitNum);
 
         const total = await Report.countDocuments(query);
 
-        // Transform photo paths to full URLs
-        const reportsWithFullUrls = reports.map(report => {
-            const reportObj = report.toObject();
-            if (reportObj.photo) {
-                reportObj.photo = getPhotoUrl(reportObj.photo);
-            }
-            return reportObj;
-        });
+        // Transform reports with full URLs and activity status
+        const transformedReports = reports.map(transformReport);
 
         res.json({
             success: true,
-            data: reportsWithFullUrls,
+            data: transformedReports,
             pagination: {
                 currentPage: pageNum,
                 totalPages: Math.ceil(total / limitNum),
@@ -252,7 +263,7 @@ const getReportById = async (req, res, next) => {
         console.log('🔍 Fetching report with ID:', id);
 
         const report = await Report.findById(id)
-            .populate('reportedBy', 'name email phone');
+            .populate('reportedBy', 'name email phone profileImage lastActive');
 
         if (!report) {
             console.error('❌ Report not found with ID:', id);
@@ -276,15 +287,12 @@ const getReportById = async (req, res, next) => {
 
         console.log('✅ Report found:', report.name);
 
-        // Transform photo path to full URL
-        const reportObj = report.toObject();
-        if (reportObj.photo) {
-            reportObj.photo = getPhotoUrl(reportObj.photo);
-        }
+        // Transform report with full URLs and activity status
+        const transformedReport = transformReport(report);
 
         res.json({
             success: true,
-            data: reportObj
+            data: transformedReport
         });
     } catch (error) {
         console.error('❌ Error in getReportById:', error);
@@ -425,25 +433,19 @@ const getMyReports = async (req, res, next) => {
         const query = { reportedBy: req.user._id };
 
         const reports = await Report.find(query)
-            .populate('reportedBy', 'name email phone')
+            .populate('reportedBy', 'name email phone profileImage lastActive')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limitNum);
 
         const total = await Report.countDocuments(query);
 
-        // Transform photo paths to full URLs
-        const reportsWithFullUrls = reports.map(report => {
-            const reportObj = report.toObject();
-            if (reportObj.photo) {
-                reportObj.photo = getPhotoUrl(reportObj.photo);
-            }
-            return reportObj;
-        });
+        // Transform reports with full URLs and activity status
+        const transformedReports = reports.map(transformReport);
 
         res.json({
             success: true,
-            data: reportsWithFullUrls,
+            data: transformedReports,
             pagination: {
                 currentPage: pageNum,
                 totalPages: Math.ceil(total / limitNum),

@@ -81,12 +81,26 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const updateUser = async (userData) => {
+    // Direct setter for user data - updates state immediately
+    const setUserData = (userData) => {
+        setUser(userData);
+        // Also persist to storage
+        if (userData) {
+            authService.saveUser(userData);
+        }
+    };
+
+    // Update user profile - merges with existing data
+    const updateUserProfile = async (newData) => {
         try {
-            const updatedUser = await authService.updateProfile(userData);
+            // Merge new data with existing user data
+            const updatedUser = { ...user, ...newData };
             setUser(updatedUser);
+            // Persist to storage
+            await authService.saveUser(updatedUser);
             return updatedUser;
         } catch (error) {
+            console.error('Error updating user profile:', error);
             throw error;
         }
     };
@@ -98,7 +112,8 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
-        updateUser,
+        updateUser: updateUserProfile,
+        setUserData,
         refreshUser: checkAuth
     };
 

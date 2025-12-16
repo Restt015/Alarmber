@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeHeader() {
@@ -8,20 +7,31 @@ export default function HomeHeader() {
 
     return (
         <View
-            className="flex-row justify-between items-center px-5 py-3 bg-white border-b border-gray-100"
-            style={{ paddingTop: insets.top + 5, paddingBottom: 15 }}
+            className="bg-white border-b border-gray-100"
+            style={{ paddingTop: insets.top + 12, paddingBottom: 16, paddingHorizontal: 20 }}
         >
-            <View className="flex-row items-center">
-                <Text className="text-[28px] font-black text-gray-900 tracking-tighter">
-                    Amber<Text className="text-red-600">.</Text>
-                </Text>
-            </View>
-
-            <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-                <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center border border-gray-200">
-                    <Ionicons name="person" size={20} color="#757575" />
+            <View className="flex-row justify-between items-center">
+                {/* Logo / Brand */}
+                <View className="flex-row items-center">
+                    <View className="w-10 h-10 bg-red-600 rounded-xl items-center justify-center mr-3">
+                        <Ionicons name="alert" size={22} color="white" />
+                    </View>
+                    <View>
+                        <Text className="text-[22px] font-black text-gray-900 tracking-tight">
+                            ALARMBER
+                        </Text>
+                        <Text className="text-[11px] text-gray-400 font-medium -mt-0.5">
+                            Red de búsqueda
+                        </Text>
+                    </View>
                 </View>
-            </TouchableOpacity>
+
+                {/* Right side - Status indicator */}
+                <View className="flex-row items-center bg-green-50 px-3 py-1.5 rounded-full">
+                    <View className="w-2 h-2 bg-green-500 rounded-full mr-2" />
+                    <Text className="text-green-700 text-[11px] font-semibold">En línea</Text>
+                </View>
+            </View>
         </View>
     );
 }

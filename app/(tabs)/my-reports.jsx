@@ -2,9 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import ErrorState from '../../components/shared/ErrorState';
 import ImageWithFallback from '../../components/shared/ImageWithFallback';
+import PageHeader from '../../components/shared/PageHeader';
 import ReportStatusBadge from '../../components/shared/ReportStatusBadge';
 import { SkeletonList } from '../../components/shared/SkeletonCard';
 import ValidationBadge from '../../components/shared/ValidationBadge';
@@ -143,42 +143,46 @@ export default function MyReportsScreen() {
     // Loading state with skeletons
     if (loading) {
         return (
-            <SafeAreaView className="flex-1 bg-gray-50">
-                <View className="px-5 pt-8 pb-4 bg-white border-b border-gray-100">
-                    <Text className="text-[28px] font-bold text-gray-900">Mis Reportes</Text>
-                </View>
+            <View className="flex-1 bg-gray-50">
+                <PageHeader
+                    title="Mis Reportes"
+                    subtitle="Gestiona tus reportes"
+                />
                 <View className="px-5 pt-4">
                     <SkeletonList count={4} />
                 </View>
-            </SafeAreaView>
+            </View>
         );
     }
 
     // Error state
     if (error && reports.length === 0) {
         return (
-            <SafeAreaView className="flex-1 bg-gray-50">
-                <View className="px-5 pt-8 pb-4 bg-white border-b border-gray-100">
-                    <Text className="text-[28px] font-bold text-gray-900">Mis Reportes</Text>
-                </View>
+            <View className="flex-1 bg-gray-50">
+                <PageHeader
+                    title="Mis Reportes"
+                    subtitle="Gestiona tus reportes"
+                />
                 <ErrorState
                     title="Error al cargar reportes"
                     message={error}
                     onRetry={loadMyReports}
                 />
-            </SafeAreaView>
+            </View>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50">
+        <View className="flex-1 bg-gray-50">
             {/* Header */}
-            <View className="px-5 pt-8 pb-4 bg-white border-b border-gray-100">
-                <Text className="text-[28px] font-bold text-gray-900 mb-2">Mis Reportes</Text>
-                <Text className="text-gray-500 text-[14px]">
-                    {stats.all} {stats.all === 1 ? 'reporte publicado' : 'reportes publicados'}
-                </Text>
-            </View>
+            <PageHeader
+                title="Mis Reportes"
+                subtitle={`${stats.all} ${stats.all === 1 ? 'reporte' : 'reportes'}`}
+                rightIcon="add-circle"
+                rightIconColor="#D32F2F"
+                rightIconBg="bg-red-50"
+                onRightPress={() => router.push('/report/create')}
+            />
 
             {/* Filter Tabs - NO PENDING TAB */}
             <View className="bg-white px-5 py-3 border-b border-gray-100">
@@ -284,6 +288,6 @@ export default function MyReportsScreen() {
                     </View>
                 }
             />
-        </SafeAreaView>
+        </View>
     );
 }

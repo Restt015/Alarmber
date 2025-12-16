@@ -39,6 +39,11 @@ const reportSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    relationship: {
+        type: String,
+        enum: ['family', 'friend', 'partner', 'neighbor', 'coworker', 'other'],
+        default: null
+    },
     reportedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

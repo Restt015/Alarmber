@@ -1,6 +1,18 @@
 const User = require('../models/User');
 const { generateToken } = require('../middleware/auth');
 
+// Helper function to convert photo path to full URL
+const getPhotoUrl = (photoPath) => {
+    if (!photoPath) return null;
+    if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
+        return photoPath;
+    }
+    const normalizedPath = photoPath.replace(/\\/g, '/');
+    const cleanPath = normalizedPath.startsWith('/') ? normalizedPath.substring(1) : normalizedPath;
+    const baseUrl = process.env.API_URL || 'http://localhost:5000';
+    return `${baseUrl}/${cleanPath}`;
+};
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -33,11 +45,12 @@ const register = async (req, res, next) => {
             message: 'User registered successfully',
             data: {
                 user: {
-                    id: user._id,
+                    _id: user._id,
                     name: user.name,
                     email: user.email,
                     phone: user.phone,
-                    role: user.role
+                    role: user.role,
+                    profileImage: null
                 },
                 token
             }
@@ -82,20 +95,29 @@ const login = async (req, res, next) => {
             });
         }
 
+        // Update lastActive on login
+        user.lastActive = new Date();
+        await user.save();
+
         // Generate token
         const token = generateToken(user._id);
+
+        // Get activity status from User model
+        const activityStatus = User.getActivityStatus(user.lastActive);
 
         res.json({
             success: true,
             message: 'Login successful',
             data: {
                 user: {
-                    id: user._id,
+                    _id: user._id,
                     name: user.name,
                     email: user.email,
                     phone: user.phone,
                     role: user.role,
-                    profileImage: user.profileImage
+                    profileImage: getPhotoUrl(user.profileImage),
+                    lastActive: user.lastActive,
+                    activityStatus
                 },
                 token
             }

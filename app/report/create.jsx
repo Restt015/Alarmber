@@ -25,6 +25,7 @@ export default function CreateReportScreen() {
     description: "",
     clothing: "",
     circumstances: "",
+    relationship: "",
   });
 
   const [photo, setPhoto] = useState(null);
@@ -53,6 +54,7 @@ export default function CreateReportScreen() {
   };
 
   const validateForm = () => {
+    if (!formData.relationship) return "Por favor selecciona tu relación con la persona";
     if (!formData.name.trim()) return "El nombre es requerido";
     if (!formData.age.trim()) return "La edad es requerida";
     if (!formData.lastLocation.trim()) return "La última ubicación es requerida";

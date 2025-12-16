@@ -11,6 +11,7 @@ const authRoutes = require('./routes/auth');
 const reportRoutes = require('./routes/reports');
 const alertRoutes = require('./routes/alerts');
 const newsRoutes = require('./routes/news');
+const userRoutes = require('./routes/users');
 
 // Initialize express app
 const app = express();
@@ -46,6 +47,7 @@ app.get('/', (req, res) => {
         message: 'Alarmber API v1.0',
         endpoints: {
             auth: '/api/auth',
+            users: '/api/users',
             reports: '/api/reports',
             alerts: '/api/alerts',
             news: '/api/news',
@@ -56,6 +58,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/news', newsRoutes);

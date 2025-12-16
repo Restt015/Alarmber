@@ -12,6 +12,7 @@ const reportService = {
             formData.append('lastLocation', reportData.lastLocation);
             formData.append('description', reportData.description);
             formData.append('clothing', reportData.clothing);
+            formData.append('relationship', reportData.relationship);
             if (reportData.circumstances) {
                 formData.append('circumstances', reportData.circumstances);
             }

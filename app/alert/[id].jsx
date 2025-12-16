@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Image,
@@ -16,10 +16,12 @@ import InfoRow from "../../components/alerts/InfoRow";
 import ReporterBox from "../../components/alerts/ReporterBox";
 import Loader from "../../components/shared/Loader";
 import PageHeader from "../../components/shared/PageHeader";
+import { useAuth } from "../../context/AuthContext";
 import reportService from "../../services/reportService";
 
 export default function AlertDetailScreen() {
   const { id } = useLocalSearchParams();
+  const { user } = useAuth();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -141,6 +143,7 @@ export default function AlertDetailScreen() {
 
   // Success State - Display Report Data
   const reporterName = report.reportedBy?.name || "Usuario";
+  const isOwner = user && report.reportedBy?._id === user._id;
   const statusColor = report.status === "active" || report.status === "investigating"
     ? "#D32F2F"
     : report.status === "resolved"
@@ -152,8 +155,14 @@ export default function AlertDetailScreen() {
       <PageHeader
         title="Detalle del Reporte"
         showBack={true}
-        rightIcon="share-outline"
-        onRightPress={() => { }}
+        rightIcon={isOwner ? "create-outline" : "share-outline"}
+        rightIconColor={isOwner ? "#1976D2" : "#1A1A1A"}
+        rightIconBg={isOwner ? "bg-blue-50" : "bg-gray-50"}
+        onRightPress={() => {
+          if (isOwner) {
+            router.push(`/report/edit/${report._id}`);
+          }
+        }}
       />
 
       <KeyboardAvoidingView
@@ -200,8 +209,11 @@ export default function AlertDetailScreen() {
           <View className="px-5 py-4 bg-white border-b border-gray-100">
             <ReporterBox
               name={reporterName}
-              role="Reportero"
+              profileImage={report.reportedBy?.profileImage}
+              relationship={report.relationship}
               time={formatDate(report.createdAt)}
+              activityStatus={report.reportedBy?.activityStatus}
+              isOwner={isOwner}
             />
           </View>
 

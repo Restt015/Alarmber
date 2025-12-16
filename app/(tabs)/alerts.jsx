@@ -23,17 +23,34 @@ export default function AlertsScreen() {
       if (isSearch) setSearching(true);
       setError(null);
 
-      const params = {
-        status: 'active'
-      };
-
+      const params = {};
       if (searchQuery.trim()) {
         params.search = searchQuery;
       }
 
-      const response = await reportService.getReports(params);
-      console.log('✅ Alerts loaded:', response.data?.length || 0);
-      setAlerts(response.data || []);
+      // Fetch from both endpoints to get all validated reports
+      const [activeResponse, finishedResponse] = await Promise.all([
+        reportService.getReports(params),
+        reportService.getFinishedReports(params)
+      ]);
+
+      // Combine all reports
+      const allReports = [
+        ...(activeResponse.data || []),
+        ...(finishedResponse || [])
+      ];
+
+      // Filter for "active" reports: status !== 'resolved'
+      // This includes: active, investigating, closed
+      const activeAlerts = allReports.filter(report =>
+        report.validated === true && report.status !== 'resolved'
+      );
+
+      // Sort by createdAt descending (most recent first)
+      activeAlerts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      console.log('✅ Alerts loaded:', activeAlerts.length);
+      setAlerts(activeAlerts);
     } catch (err) {
       console.error('❌ Error loading alerts:', err);
       setError(err.message || 'Error al cargar las alertas');
