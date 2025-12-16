@@ -9,6 +9,13 @@ class WebSocketService {
         this.wss = null;
         this.rooms = new Map(); // Map<reportId, Set<WebSocket>>
         this.pingInterval = null;
+        // Rate limiting: Map<userId, { count: number, resetAt: Date }>
+        this.rateLimits = new Map();
+        // ANTI-SPAM CONSTANTS
+        this.MAX_MESSAGES_PER_WINDOW = 5;
+        this.RATE_LIMIT_WINDOW_MS = 30000; // 30 seconds
+        this.MAX_MESSAGE_LENGTH = 500;
+        this.MIN_MESSAGE_LENGTH = 1;
     }
 
     initialize(port = 5001) {
@@ -101,25 +108,107 @@ class WebSocketService {
         if (message.action === 'message:send') {
             const { content, type = 'text', metadata = {} } = message;
 
-            if (!content) return;
+            if (!content || !content.trim()) {
+                return this.send(ws, { action: 'error', message: 'El mensaje no puede estar vacío' });
+            }
+
+            // Content validation
+            if (content.length > this.MAX_MESSAGE_LENGTH) {
+                return this.send(ws, { action: 'error', message: `Máximo ${this.MAX_MESSAGE_LENGTH} caracteres` });
+            }
+
+            if (content.trim().length < this.MIN_MESSAGE_LENGTH) {
+                return this.send(ws, { action: 'error', message: 'Mensaje demasiado corto' });
+            }
+
+            // 1. Check user ban status
+            const user = await User.findById(ws.user._id);
+            if (user.banned) {
+                return this.send(ws, { action: 'error', message: 'Tu cuenta ha sido suspendida' });
+            }
+
+            // 2. Check mute status
+            if (user.mutedUntil && new Date() < new Date(user.mutedUntil)) {
+                const remaining = Math.ceil((new Date(user.mutedUntil) - new Date()) / 1000);
+                return this.send(ws, { action: 'error', message: `Estás silenciado. Espera ${remaining}s` });
+            }
+
+            // 3. Rate limiting check
+            const rateLimitError = this.checkRateLimit(ws.user._id);
+            if (rateLimitError) {
+                // Track violations for spam detection
+                const userLimit = this.rateLimits.get(ws.user._id);
+                if (userLimit && !userLimit.violations) {
+                    userLimit.violations = 0;
+                }
+                if (userLimit) {
+                    userLimit.violations = (userLimit.violations || 0) + 1;
+
+                    // Notify mods if excessive violations
+                    if (userLimit.violations >= 3) {
+                        const notificationHelper = require('../utils/notificationHelper');
+                        await notificationHelper.notifySpamDetected(
+                            ws.user._id,
+                            ws.reportId,
+                            userLimit.count
+                        );
+                    }
+                }
+
+                return this.send(ws, { action: 'error', message: rateLimitError });
+            }
+
+            // 4. Get report and check chat status
+            const Report = require('../models/Report');
+            const report = await Report.findById(ws.reportId);
+
+            if (!report) {
+                return this.send(ws, { action: 'error', message: 'Reporte no encontrado' });
+            }
+
+            // Check if chat is closed (only allow moderators/admins)
+            if (report.chatStatus === 'closed' && !['moderator', 'admin'].includes(user.role)) {
+                return this.send(ws, { action: 'error', message: 'El chat está cerrado por moderadores' });
+            }
+
+            // 5. Slowmode check (only for regular users)
+            if (report.chatStatus === 'slowmode' && report.slowmodeSeconds > 0 && user.role === 'user') {
+                if (user.lastMessageAt) {
+                    const timeSinceLastMessage = (new Date() - new Date(user.lastMessageAt)) / 1000;
+                    if (timeSinceLastMessage < report.slowmodeSeconds) {
+                        const remaining = Math.ceil(report.slowmodeSeconds - timeSinceLastMessage);
+                        return this.send(ws, { action: 'error', message: `Modo lento activo. Espera ${remaining}s` });
+                    }
+                }
+            }
 
             // Validate type is a valid enum value
             const validTypes = ['text', 'image', 'system'];
             const messageType = validTypes.includes(type) ? type : 'text';
 
-            // 1. Save to MongoDB
+            // 6. Save to MongoDB
             const savedMessage = await Message.create({
                 reportId: ws.reportId,
                 sender: ws.user._id,
-                content,
+                content: content.trim(),
                 type: messageType,
-                metadata
+                metadata,
+                senderRole: user.role,
+                senderName: user.name,
+                status: 'active'
             });
 
             // Populate user info for broadcast
             await savedMessage.populate('sender', 'name profileImage');
 
-            // 2. Broadcast to Room
+            // 7. Update timestamps
+            await User.findByIdAndUpdate(ws.user._id, { lastMessageAt: new Date() });
+            await Report.findByIdAndUpdate(ws.reportId, { lastMessageAt: new Date() });
+
+            // 8. Increment rate limit counter
+            this.incrementRateLimit(ws.user._id);
+
+            // 9. Broadcast to Room
             this.broadcastToRoom(ws.reportId, {
                 action: 'message:new',
                 data: savedMessage
@@ -158,6 +247,44 @@ class WebSocketService {
                 ws.ping();
             });
         }, 30000); // Check every 30s
+    }
+
+    // Rate limiting helpers
+    checkRateLimit(userId) {
+        const now = Date.now();
+        const userLimit = this.rateLimits.get(userId);
+
+        if (!userLimit) {
+            return null; // First message, no limit
+        }
+
+        // Check if window has expired
+        if (now > userLimit.resetAt) {
+            this.rateLimits.delete(userId);
+            return null;
+        }
+
+        // Check if limit exceeded
+        if (userLimit.count >= this.MAX_MESSAGES_PER_WINDOW) {
+            const remaining = Math.ceil((userLimit.resetAt - now) / 1000);
+            return `Demasiados mensajes. Espera ${remaining}s`;
+        }
+
+        return null;
+    }
+
+    incrementRateLimit(userId) {
+        const now = Date.now();
+        const userLimit = this.rateLimits.get(userId);
+
+        if (!userLimit || now > userLimit.resetAt) {
+            this.rateLimits.set(userId, {
+                count: 1,
+                resetAt: now + this.RATE_LIMIT_WINDOW_MS
+            });
+        } else {
+            userLimit.count++;
+        }
     }
 }
 

@@ -99,6 +99,15 @@ function RootLayoutNav() {
               }}
             />
 
+            {/* Moderator - NO swipe back to login */}
+            <Stack.Screen
+              name="(mod)"
+              options={{
+                headerShown: false,
+                gestureEnabled: false, // Prevent swipe back to login/welcome
+              }}
+            />
+
             {/* Auth screens - disable back gesture between them */}
             <Stack.Screen
               name="index"

@@ -10,9 +10,8 @@ export const AuthProvider = ({ children }) => {
 
     // Check if user is logged in on app start
     useEffect(() => {
-        // We explicitly DON'T check auth here to force welcome screen
-        // checkAuth(); 
-        setLoading(false);
+        // Enable session restoration for role-based routing
+        checkAuth();
     }, []);
 
     const checkAuth = async () => {
@@ -107,7 +106,9 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         user,
+        role: user?.role || null,
         loading,
+        isLoading: loading,
         isAuthenticated,
         login,
         register,

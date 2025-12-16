@@ -1,14 +1,31 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useEffect } from 'react';
+import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
-import { Button, Surface, useTheme } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../context/AuthContext';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
-    const theme = useTheme();
+    const { user, role, isLoading } = useAuth();
+
+    // Check for existing session and redirect
+    useEffect(() => {
+        if (!isLoading && user) {
+            // User is authenticated, redirect based on role
+            if (role === 'moderator' || role === 'admin') {
+                router.replace('/(mod)/inbox');
+            } else {
+                router.replace('/(tabs)');
+            }
+        }
+    }, [user, role, isLoading]);
+
+    // Don't render welcome content if redirecting
+    if (!isLoading && user) {
+        return null;
+    }
 
     return (
         <View style={styles.container}>
@@ -20,15 +37,22 @@ export default function WelcomeScreen() {
                 style={styles.background}
             />
 
-            <SafeAreaView style={styles.content}>
-                {/* Header / Logo Section */}
-                <View style={styles.header}>
-                    <Surface style={styles.logoContainer} elevation={4}>
-                        <Text style={styles.logoIcon}>🚨</Text>
-                    </Surface>
-                    <Text style={styles.title}>ALARMBER</Text>
-                    <Text style={styles.subtitle}>Reportes y Alertas Ciudadanas</Text>
+            {/* Content */}
+            <View style={styles.content}>
+                {/* Logo */}
+                <View style={styles.logoContainer}>
+                    <Image
+                        source={require('../assets/images/logo.png')}
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
                 </View>
+
+                {/* Title */}
+                <Text style={styles.title}>ALARMBER</Text>
+                <Text style={styles.subtitle}>
+                    Tu comunidad de alertas y seguridad
+                </Text>
 
                 {/* Info / Description */}
                 <View style={styles.infoContainer}>

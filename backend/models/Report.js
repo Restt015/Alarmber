@@ -125,6 +125,27 @@ const reportSchema = new mongoose.Schema({
         type: String,
         default: '',
         maxlength: [2000, 'Notes cannot be more than 2000 characters']
+    },
+    // View tracking
+    uniqueViewers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+
+    // Chat moderation fields
+    chatStatus: {
+        type: String,
+        enum: ['open', 'slowmode', 'closed'],
+        default: 'open'
+    },
+    slowmodeSeconds: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    lastMessageAt: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: true

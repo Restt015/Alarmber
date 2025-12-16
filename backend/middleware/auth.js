@@ -80,6 +80,18 @@ const admin = (req, res, next) => {
     }
 };
 
+// Moderator or Admin middleware
+const moderator = (req, res, next) => {
+    if (req.user && ['moderator', 'admin'].includes(req.user.role)) {
+        next();
+    } else {
+        res.status(403).json({
+            success: false,
+            message: 'Acceso denegado. Se requiere rol de moderador o administrador.'
+        });
+    }
+};
+
 // Generate JWT token
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -87,4 +99,4 @@ const generateToken = (id) => {
     });
 };
 
-module.exports = { protect, optionalAuth, admin, generateToken };
+module.exports = { protect, optionalAuth, admin, moderator, generateToken };

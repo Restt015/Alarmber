@@ -22,6 +22,13 @@ exports.getMessagesByReportId = async (req, res, next) => {
         // Build query
         const query = { reportId };
 
+        // Filter deleted messages for regular users
+        // Moderators and admins can see all messages
+        const isModerator = req.user && ['moderator', 'admin'].includes(req.user.role);
+        if (!isModerator) {
+            query.status = 'active';
+        }
+
         if (before) {
             query.createdAt = { $lt: new Date(before) };
         }

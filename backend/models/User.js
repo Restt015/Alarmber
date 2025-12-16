@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['user', 'admin'],
+        enum: ['user', 'moderator', 'admin'],
         default: 'user'
     },
     profileImage: {
@@ -51,6 +51,23 @@ const userSchema = new mongoose.Schema({
     lastActive: {
         type: Date,
         default: Date.now
+    },
+    // Moderation fields
+    mutedUntil: {
+        type: Date,
+        default: null
+    },
+    banned: {
+        type: Boolean,
+        default: false
+    },
+    strikeCount: {
+        type: Number,
+        default: 0
+    },
+    lastMessageAt: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: true // Adds createdAt and updatedAt

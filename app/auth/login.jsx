@@ -56,14 +56,18 @@ export default function LoginScreen() {
         setLoading(true);
         try {
             const response = await login(email, password);
+
+            // Redirect based on role
+            const role = response.user?.role;
+
             Alert.alert(
                 '¡Bienvenido!',
                 `Hola ${response.user.name}`,
                 [{
                     text: 'Continuar',
                     onPress: () => {
-                        if (response.user.role === 'admin') {
-                            router.replace('/admin');
+                        if (role === 'moderator' || role === 'admin') {
+                            router.replace('/(mod)/inbox');
                         } else {
                             router.replace('/(tabs)');
                         }

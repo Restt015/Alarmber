@@ -53,7 +53,11 @@ app.get('/', (req, res) => {
             news: '/api/news',
             notifications: '/api/notifications',
             admin: '/api/admin',
-            messages: '/api/reports/:reportId/messages'
+            messages: '/api/reports/:reportId/messages',
+            moderation: '/api/moderation',
+            modInbox: '/api/mod/inbox',
+            modReports: '/api/mod/reports',
+            modChats: '/api/mod/chats'
         }
     });
 });
@@ -65,6 +69,10 @@ app.use('/api', require('./routes/messages')); // Messages routes (mounted at /a
 app.use('/api/alerts', alertRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/moderation', require('./routes/moderation'));
+app.use('/api/mod/inbox', require('./routes/modInbox'));
+app.use('/api/mod/reports', require('./routes/modReports'));
+app.use('/api/mod/chats', require('./routes/modChats'));
 
 // Initialize WebSocket Service
 const websocketService = require('./services/websocketService');

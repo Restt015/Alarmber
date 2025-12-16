@@ -35,7 +35,33 @@ const messageSchema = new mongoose.Schema({
             type: Date,
             default: Date.now
         }
-    }]
+    }],
+    // Moderation fields
+    senderRole: {
+        type: String,
+        enum: ['user', 'moderator', 'admin'],
+        default: 'user'
+    },
+    senderName: {
+        type: String,
+        default: ''
+    },
+    status: {
+        type: String,
+        enum: ['active', 'deleted', 'hidden'],
+        default: 'active'
+    },
+    moderation: {
+        actionBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        reason: {
+            type: String,
+            maxlength: 200
+        },
+        actionAt: Date
+    }
 }, {
     timestamps: true
 });
@@ -45,5 +71,8 @@ messageSchema.index({ reportId: 1, createdAt: -1 });
 
 // Index for user message history
 messageSchema.index({ sender: 1, createdAt: -1 });
+
+// Index for filtering by status
+messageSchema.index({ status: 1, reportId: 1 });
 
 module.exports = mongoose.model('Message', messageSchema);
