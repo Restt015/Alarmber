@@ -1,4 +1,5 @@
-import { Redirect, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Redirect, Tabs } from 'expo-router';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 
@@ -21,14 +22,45 @@ export default function ModLayout() {
     }
 
     return (
-        <Stack>
-            <Stack.Screen
-                name="inbox"
+        <Tabs
+            screenOptions={{
+                tabBarActiveTintColor: '#D32F2F',
+                tabBarInactiveTintColor: '#9CA3AF',
+                headerShown: false,
+                tabBarStyle: {
+                    backgroundColor: 'white',
+                    borderTopColor: '#E5E7EB',
+                    borderTopWidth: 1
+                }
+            }}
+        >
+            <Tabs.Screen
+                name="reports"
                 options={{
-                    title: 'Moderación',
-                    headerShown: true
+                    title: 'Reportes',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="document-text" size={size} color={color} />
+                    )
                 }}
             />
-        </Stack>
+            <Tabs.Screen
+                name="chats"
+                options={{
+                    title: 'Chats',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="chatbubbles" size={size} color={color} />
+                    )
+                }}
+            />
+            <Tabs.Screen
+                name="inbox"
+                options={{
+                    title: 'Inbox',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="notifications" size={size} color={color} />
+                    )
+                }}
+            />
+        </Tabs>
     );
 }
