@@ -15,8 +15,8 @@ router.get('/stats', modInboxController.getStats);
 // PATCH /api/mod/inbox/:id/read - Mark as read
 router.patch('/:id/read', modInboxController.markRead);
 
-// PATCH /api/mod/inbox/:id/resolve - Mark as resolved
-router.patch('/:id/resolve', modInboxController.markResolved);
+// POST /api/mod/inbox/:id/resolve - Mark as resolved
+router.post('/:id/resolve', modInboxController.markResolved);
 
 // PATCH /api/mod/inbox/bulk - Bulk update
 router.patch('/bulk', modInboxController.bulkUpdate);

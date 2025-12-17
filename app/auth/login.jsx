@@ -66,7 +66,9 @@ export default function LoginScreen() {
                 [{
                     text: 'Continuar',
                     onPress: () => {
-                        if (role === 'moderator' || role === 'admin') {
+                        if (role === 'admin') {
+                            router.replace('/admin');
+                        } else if (role === 'moderator') {
                             router.replace('/(mod)/inbox');
                         } else {
                             router.replace('/(tabs)');

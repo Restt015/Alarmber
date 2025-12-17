@@ -73,6 +73,7 @@ app.use('/api/moderation', require('./routes/moderation'));
 app.use('/api/mod/inbox', require('./routes/modInbox'));
 app.use('/api/mod/reports', require('./routes/modReports'));
 app.use('/api/mod/chats', require('./routes/modChats'));
+app.use('/api/mod/actions', require('./routes/modActions'));
 
 // Initialize WebSocket Service
 const websocketService = require('./services/websocketService');

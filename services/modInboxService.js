@@ -32,14 +32,78 @@ class ModInboxService {
     }
 
     // Mark as resolved
-    async markResolved(id) {
-        const response = await api.patch(`/mod/inbox/${id}/resolve`);
+    async markResolved(id, resolutionNote = '') {
+        const response = await api.post(`/mod/inbox/${id}/resolve`, { resolutionNote });
         return response;
     }
 
     // Bulk update
     async bulkUpdate(ids, status) {
         const response = await api.patch('/mod/inbox/bulk', { ids, status });
+        return response;
+    }
+
+    // Moderation actions
+    async warnUser(userId, reportId, template, customReason, meta, notificationId) {
+        const response = await api.post('/mod/actions/warn', {
+            userId,
+            reportId,
+            template,
+            customReason,
+            meta,
+            notificationId
+        });
+        return response;
+    }
+
+    async muteUser(userId, durationSeconds, reason, reportId, notificationId) {
+        const response = await api.post('/mod/actions/mute', {
+            userId,
+            durationSeconds,
+            reason,
+            reportId,
+            notificationId
+        });
+        return response;
+    }
+
+    async banUser(userId, durationSeconds, reason, reportId, notificationId) {
+        const response = await api.post('/mod/actions/ban', {
+            userId,
+            durationSeconds,
+            reason,
+            reportId,
+            notificationId
+        });
+        return response;
+    }
+
+    async deleteMessages(reportId, messageIds, reason, notificationId) {
+        const response = await api.post('/mod/actions/delete-messages', {
+            reportId,
+            messageIds,
+            reason,
+            notificationId
+        });
+        return response;
+    }
+
+    async setSlowmode(reportId, seconds, reason, notificationId) {
+        const response = await api.post('/mod/actions/slowmode', {
+            reportId,
+            seconds,
+            reason,
+            notificationId
+        });
+        return response;
+    }
+
+    // Spam cleanup with action modes
+    async spamCleanup(notificationId, actionMode) {
+        const response = await api.post('/mod/actions/spam/cleanup', {
+            notificationId,
+            actionMode
+        });
         return response;
     }
 

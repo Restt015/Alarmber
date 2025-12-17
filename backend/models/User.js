@@ -68,6 +68,27 @@ const userSchema = new mongoose.Schema({
     lastMessageAt: {
         type: Date,
         default: null
+    },
+    // New moderation fields
+    chatMuteUntil: {
+        type: Date,
+        default: null
+    },
+    chatMuteReason: {
+        type: String,
+        default: null
+    },
+    bannedUntil: {
+        type: Date,
+        default: null
+    },
+    banReason: {
+        type: String,
+        default: null
+    },
+    banPermanent: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true // Adds createdAt and updatedAt

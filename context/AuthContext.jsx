@@ -5,6 +5,7 @@ const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [token, setToken] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -17,24 +18,28 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
         try {
             setLoading(true);
-            const token = await authService.getToken();
-            if (token) {
+            const authToken = await authService.getToken();
+            if (authToken) {
                 const userData = await authService.getUser();
                 if (userData) {
                     setUser(userData);
+                    setToken(authToken);
                     setIsAuthenticated(true);
                 } else {
                     // Si no hay datos de usuario, limpiar todo
                     setUser(null);
+                    setToken(null);
                     setIsAuthenticated(false);
                 }
             } else {
                 setUser(null);
+                setToken(null);
                 setIsAuthenticated(false);
             }
         } catch (error) {
             console.error('Error checking auth:', error);
             setUser(null);
+            setToken(null);
             setIsAuthenticated(false);
         } finally {
             setLoading(false);
@@ -45,10 +50,12 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await authService.login(email, password);
             setUser(response.user);
+            setToken(response.token);
             setIsAuthenticated(true);
             return response;
         } catch (error) {
             setUser(null);
+            setToken(null);
             setIsAuthenticated(false);
             throw error;
         }
@@ -58,10 +65,12 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await authService.register(name, email, password);
             setUser(response.user);
+            setToken(response.token);
             setIsAuthenticated(true);
             return response;
         } catch (error) {
             setUser(null);
+            setToken(null);
             setIsAuthenticated(false);
             throw error;
         }
@@ -75,6 +84,7 @@ export const AuthProvider = ({ children }) => {
         } finally {
             // Siempre limpiar el estado, incluso si hay error
             setUser(null);
+            setToken(null);
             setIsAuthenticated(false);
             setLoading(false);
         }
@@ -106,6 +116,7 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         user,
+        token,
         role: user?.role || null,
         loading,
         isLoading: loading,

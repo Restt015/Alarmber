@@ -1,10 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import chatService from '../../services/chatService';
+import moderationService from '../../services/moderationService';
+import MessageItem from './MessageItem';
 
-export default function ReportChat({ reportId, currentUserId, token }) {
+export default function ReportChat({ reportId, currentUserId, token, highlightMessageId }) {
+    const insets = useSafeAreaInsets();
+
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(true);
@@ -12,13 +28,16 @@ export default function ReportChat({ reportId, currentUserId, token }) {
     const [connectionStatus, setConnectionStatus] = useState('disconnected');
     const [errorBanner, setErrorBanner] = useState(null);
     const [isMuted, setIsMuted] = useState(false);
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedMessageIds, setSelectedMessageIds] = useState(new Set());
     const flatListRef = useRef(null);
 
-    // Initial Load & Connect
+    const { user } = useAuth();
+    const isModerator = user && ['moderator', 'admin'].includes(user.role);
+
     useEffect(() => {
         loadHistory();
 
-        // Subscribe to real-time events
         const unsubscribe = chatService.subscribe((event) => {
             switch (event.type) {
                 case 'connected':
@@ -42,7 +61,6 @@ export default function ReportChat({ reportId, currentUserId, token }) {
             }
         });
 
-        // Initialize connection
         chatService.connect(reportId, token);
 
         return () => {
@@ -57,8 +75,7 @@ export default function ReportChat({ reportId, currentUserId, token }) {
             const data = await api.get(`/reports/${reportId}/messages?limit=50`);
             if (data.success) {
                 setMessages(data.data);
-                // Scroll to bottom after loading
-                setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 100);
+                setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 120);
             }
         } catch (error) {
             console.error('Failed to load chat history:', error);
@@ -68,29 +85,24 @@ export default function ReportChat({ reportId, currentUserId, token }) {
     };
 
     const addMessage = (newMsg) => {
-        setMessages(prev => {
-            // Avoid duplicates
-            if (prev.some(m => m._id === newMsg._id)) return prev;
+        setMessages((prev) => {
+            if (prev.some((m) => m._id === newMsg._id)) return prev;
             return [...prev, newMsg];
         });
-        // Scroll to bottom on new message
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 120);
     };
 
     const handleMessageDeleted = (payload) => {
         const { messageId } = payload;
-        setMessages(prev => prev.map(msg =>
-            msg._id === messageId
-                ? { ...msg, status: 'deleted', moderation: payload }
-                : msg
-        ));
+        setMessages((prev) =>
+            prev.map((msg) => (msg._id === messageId ? { ...msg, status: 'deleted', moderation: payload } : msg))
+        );
     };
 
     const handleError = (errorMsg) => {
         setErrorBanner(errorMsg);
         setTimeout(() => setErrorBanner(null), 5000);
 
-        // Check if it's a mute error
         if (errorMsg && errorMsg.includes('silenciado')) {
             setIsMuted(true);
             setTimeout(() => setIsMuted(false), 60000);
@@ -105,11 +117,7 @@ export default function ReportChat({ reportId, currentUserId, token }) {
         setSending(true);
 
         try {
-            // Send via WS
             chatService.send(content);
-            // We rely on the server broadcasting it back to us ('message:new') 
-            // to add it to the list, confirming receipt. 
-            // Alternatively, we could optimistically add it here.
         } catch (error) {
             console.error('Send error:', error);
             setErrorBanner('Error al enviar mensaje. Verifica tu conexión.');
@@ -120,33 +128,15 @@ export default function ReportChat({ reportId, currentUserId, token }) {
     };
 
     const handleReportMessage = (message) => {
-        if (message.sender._id === currentUserId || message.sender === currentUserId) {
-            return; // Can't report own messages
-        }
+        if (message.sender._id === currentUserId || message.sender === currentUserId) return;
 
-        Alert.alert(
-            'Reportar mensaje',
-            '¿Por qué quieres reportar este mensaje?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Spam',
-                    onPress: () => submitReport(message._id, 'spam')
-                },
-                {
-                    text: 'Ofensivo',
-                    onPress: () => submitReport(message._id, 'offensive')
-                },
-                {
-                    text: 'Acoso',
-                    onPress: () => submitReport(message._id, 'harassment')
-                },
-                {
-                    text: 'Otro',
-                    onPress: () => submitReport(message._id, 'other')
-                }
-            ]
-        );
+        Alert.alert('Reportar mensaje', '¿Por qué quieres reportar este mensaje?', [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Spam', onPress: () => submitReport(message._id, 'spam') },
+            { text: 'Ofensivo', onPress: () => submitReport(message._id, 'offensive') },
+            { text: 'Acoso', onPress: () => submitReport(message._id, 'harassment') },
+            { text: 'Otro', onPress: () => submitReport(message._id, 'other') }
+        ]);
     };
 
     const submitReport = async (messageId, reason) => {
@@ -159,141 +149,275 @@ export default function ReportChat({ reportId, currentUserId, token }) {
         }
     };
 
-    const renderMessage = ({ item }) => {
-        const isOwn = item.sender._id === currentUserId || item.sender === currentUserId;
-        const isDeleted = item.status === 'deleted';
-        const isModerator = ['moderator', 'admin'].includes(item.senderRole);
+    const handleLongPress = (message) => {
+        if (!isModerator) return handleReportMessage(message);
 
-        // Deleted message placeholder
-        if (isDeleted) {
-            return (
-                <View className="mb-3 items-center">
-                    <View className="bg-gray-200 px-4 py-2 rounded-lg">
-                        <Text className="text-gray-500 text-xs italic">
-                            🚫 Mensaje eliminado por moderación
-                        </Text>
-                    </View>
-                </View>
-            );
+        if (!selectionMode) {
+            setSelectionMode(true);
+            toggleSelection(message._id);
+        } else {
+            toggleSelection(message._id);
         }
+    };
 
-        return (
-            <View className={`mb-3 flex-row ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                {!isOwn && (
-                    <View className="mr-2 justify-end">
-                        {/* Avatar placeholder or image */}
-                        <View className="w-8 h-8 rounded-full bg-gray-300 items-center justify-center overflow-hidden">
-                            <Ionicons name="person" size={16} color="#666" />
-                        </View>
-                    </View>
-                )}
+    const toggleSelection = (messageId) => {
+        setSelectedMessageIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(messageId)) next.delete(messageId);
+            else next.add(messageId);
+            return next;
+        });
+    };
 
-                <TouchableOpacity
-                    onLongPress={() => handleReportMessage(item)}
-                    activeOpacity={0.8}
-                    className={`px-4 py-2.5 rounded-2xl max-w-[75%] ${isOwn
-                        ? 'bg-[#1976D2] rounded-tr-none'
-                        : 'bg-white border border-gray-100 rounded-tl-none shadow-sm'
-                        }`}
-                >
-                    {!isOwn && (
-                        <View className="flex-row items-center mb-1">
-                            <Text className="text-[11px] text-gray-500 font-semibold">
-                                {item.sender.name || 'Usuario'}
-                            </Text>
-                            {isModerator && (
-                                <View className="ml-2 px-1.5 py-0.5 rounded bg-red-600">
-                                    <Text className="text-white text-[10px] font-bold">
-                                        {item.senderRole === 'admin' ? 'ADMIN' : 'MOD'}
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-                    )}
-                    <Text className={`text-[15px] ${isOwn ? 'text-white' : 'text-gray-800'}`}>
-                        {item.content}
-                    </Text>
-                    <Text className={`text-[10px] mt-1 text-right ${isOwn ? 'text-blue-100' : 'text-gray-400'}`}>
-                        {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                </TouchableOpacity>
-            </View>
+    const confirmDelete = (messageIds) => {
+        Alert.alert(
+            'Confirmar Eliminación',
+            `¿Estás seguro de eliminar ${messageIds.length} mensaje(s)? Esta acción dejará un rastro de auditoría.`,
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Eliminar', style: 'destructive', onPress: () => executeDelete(messageIds) }
+            ]
         );
     };
 
+    const executeDelete = async (messageIds) => {
+        try {
+            await api.post('/mod/actions/delete-messages', {
+                reportId,
+                messageIds,
+                reason: 'Borrado manual por moderador'
+            });
+
+            setSelectionMode(false);
+            setSelectedMessageIds(new Set());
+        } catch (error) {
+            console.error('Failed to delete messages:', error);
+            Alert.alert('Error', 'No se pudieron eliminar los mensajes.');
+        }
+    };
+
+    const renderItem = ({ item }) => (
+        <MessageItem
+            item={item}
+            currentUserId={currentUserId}
+            selectionMode={selectionMode}
+            selectedMessageIds={selectedMessageIds}
+            highlightMessageId={highlightMessageId}
+            onToggleSelection={toggleSelection}
+            onLongPress={handleLongPress}
+            isModerator={isModerator}
+        />
+    );
+
+    const headerTopPadding = (selectionMode ? insets.top : 0) + 8;
+
     return (
-        <View className="flex-1 bg-gray-50">
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }} edges={['top', 'bottom']}>
             {/* Error Banner */}
             {errorBanner && (
-                <View className="bg-red-100 px-4 py-3 border-b border-red-200">
-                    <Text className="text-red-800 text-sm text-center">
-                        ⚠️ {errorBanner}
+                <View
+                    style={{
+                        backgroundColor: '#FEE2E2',
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        borderBottomWidth: 1,
+                        borderBottomColor: '#FECACA'
+                    }}
+                >
+                    <Text style={{ color: '#991B1B', fontSize: 14, textAlign: 'center' }}>⚠️ {errorBanner}</Text>
+                </View>
+            )}
+
+            {/* Status Bar OR Selection Header */}
+            {selectionMode ? (
+                <View
+                    style={{
+                        backgroundColor: '#1976D2',
+                        paddingTop: headerTopPadding,
+                        paddingBottom: 12,
+                        paddingHorizontal: 14,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        elevation: 4,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.12,
+                        shadowRadius: 6
+                    }}
+                >
+                    {/* Left: X + count */}
+                    <TouchableOpacity
+                        onPress={() => {
+                            setSelectionMode(false);
+                            setSelectedMessageIds(new Set());
+                        }}
+                        style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: 8,
+                            paddingHorizontal: 10,
+                            borderRadius: 14,
+                            backgroundColor: 'rgba(255,255,255,0.18)'
+                        }}
+                        activeOpacity={0.75}
+                    >
+                        <Ionicons name="close" size={22} color="#FFFFFF" />
+                        <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16, marginLeft: 10 }}>
+                            {selectedMessageIds.size}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Right: Delete */}
+                    <TouchableOpacity
+                        onPress={() => {
+                            if (selectedMessageIds.size > 0) confirmDelete(Array.from(selectedMessageIds));
+                        }}
+                        disabled={selectedMessageIds.size === 0}
+                        style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: 10,
+                            paddingHorizontal: 14,
+                            backgroundColor: selectedMessageIds.size > 0 ? '#DC2626' : 'rgba(255,255,255,0.25)',
+                            borderRadius: 16
+                        }}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons
+                            name="trash-outline"
+                            size={18}
+                            color={selectedMessageIds.size > 0 ? '#FFFFFF' : 'rgba(255,255,255,0.55)'}
+                        />
+                        <Text
+                            style={{
+                                color: selectedMessageIds.size > 0 ? '#FFFFFF' : 'rgba(255,255,255,0.55)',
+                                fontWeight: '800',
+                                fontSize: 14,
+                                marginLeft: 8
+                            }}
+                        >
+                            Eliminar
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <View
+                    style={{
+                        backgroundColor: '#FFFFFF',
+                        paddingHorizontal: 16,
+                        paddingVertical: 10,
+                        borderBottomWidth: 1,
+                        borderBottomColor: '#F3F4F6',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <View
+                        style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            marginRight: 8,
+                            backgroundColor:
+                                connectionStatus === 'connected'
+                                    ? '#22C55E'
+                                    : connectionStatus === 'connecting'
+                                        ? '#EAB308'
+                                        : '#EF4444'
+                        }}
+                    />
+                    <Text style={{ fontSize: 12, color: '#6B7280' }}>
+                        {connectionStatus === 'connected'
+                            ? 'En línea'
+                            : connectionStatus === 'connecting'
+                                ? 'Conectando...'
+                                : 'Desconectado'}
                     </Text>
                 </View>
             )}
 
-            {/* Status Bar */}
-            <View className="bg-white px-4 py-2 border-b border-gray-100 flex-row items-center justify-center">
-                <View className={`w-2 h-2 rounded-full mr-2 ${connectionStatus === 'connected' ? 'bg-green-500' :
-                    connectionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
-                    }`} />
-                <Text className="text-xs text-gray-500">
-                    {connectionStatus === 'connected' ? 'En línea' :
-                        connectionStatus === 'connecting' ? 'Conectando...' : 'Desconectado'}
-                </Text>
-            </View>
-
             {loading ? (
-                <View className="flex-1 justify-center items-center">
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color="#1976D2" />
                 </View>
             ) : (
                 <FlatList
                     ref={flatListRef}
                     data={messages}
-                    keyExtractor={item => item._id}
-                    renderItem={renderMessage}
-                    contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
-                    onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-                    ListEmptyComponent={
-                        <View className="items-center justify-center py-10">
-                            <Text className="text-gray-400">No hay mensajes aún. ¡Di hola!</Text>
-                        </View>
-                    }
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item._id}
+                    contentContainerStyle={{ paddingVertical: 16, paddingBottom: 18 }}
+                    inverted={false}
+                    onScrollToIndexFailed={(info) => {
+                        const wait = new Promise((resolve) => setTimeout(resolve, 500));
+                        wait.then(() => flatListRef.current?.scrollToIndex({ index: info.index, animated: true }));
+                    }}
                 />
             )}
 
             <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             >
-                <View className="p-3 bg-white border-t border-gray-100 flex-row items-center">
+                <View
+                    style={{
+                        paddingHorizontal: 12,
+                        paddingTop: 10,
+                        paddingBottom: Math.max(insets.bottom, 10),
+                        backgroundColor: '#FFFFFF',
+                        borderTopWidth: 1,
+                        borderTopColor: '#F3F4F6',
+                        flexDirection: 'row',
+                        alignItems: 'flex-end'
+                    }}
+                >
                     <TextInput
-                        className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 mr-3 text-gray-800 text-[15px] max-h-24"
-                        placeholder={isMuted ? "Estás silenciado..." : "Escribe un mensaje..."}
+                        style={{
+                            flex: 1,
+                            backgroundColor: '#F3F4F6',
+                            borderRadius: 9999,
+                            paddingHorizontal: 16,
+                            paddingTop: 10,
+                            paddingBottom: 10,
+                            marginRight: 10,
+                            color: '#1F2937',
+                            fontSize: 15,
+                            maxHeight: 110
+                        }}
+                        placeholder={isMuted ? 'Estás silenciado...' : 'Escribe un mensaje...'}
+                        placeholderTextColor="#9CA3AF"
                         value={inputText}
                         onChangeText={setInputText}
                         multiline
                         maxLength={1000}
                         editable={!isMuted && connectionStatus === 'connected'}
                     />
+
                     <TouchableOpacity
                         onPress={sendMessage}
-                        disabled={!inputText.trim() || connectionStatus !== 'connected' || isMuted}
-                        className={`w-10 h-10 rounded-full items-center justify-center ${!inputText.trim() || connectionStatus !== 'connected' || isMuted
-                            ? 'bg-gray-200'
-                            : 'bg-[#1976D2]'
-                            }`}
+                        disabled={!inputText.trim() || connectionStatus !== 'connected' || isMuted || sending}
+                        style={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: 21,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor:
+                                !inputText.trim() || connectionStatus !== 'connected' || isMuted || sending ? '#E5E7EB' : '#1976D2'
+                        }}
+                        activeOpacity={0.85}
                     >
                         <Ionicons
                             name="send"
                             size={20}
-                            color={!inputText.trim() || connectionStatus !== 'connected' || isMuted ? '#999' : 'white'}
+                            color={!inputText.trim() || connectionStatus !== 'connected' || isMuted || sending ? '#999' : '#FFF'}
                             style={{ marginLeft: 2 }}
                         />
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
-        </View>
+        </SafeAreaView>
     );
 }

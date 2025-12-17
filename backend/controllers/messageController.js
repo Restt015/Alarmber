@@ -23,11 +23,13 @@ exports.getMessagesByReportId = async (req, res, next) => {
         const query = { reportId };
 
         // Filter deleted messages for regular users
-        // Moderators and admins can see all messages
+        // Moderators and admins can see all messages explanation: We now return deleted messages sanitized
+        // const isModerator = req.user && ['moderator', 'admin'].includes(req.user.role);
+        // if (!isModerator) {
+        //     query.status = 'active';
+        // }
+        // Keeping isModerator check for later use in sanitization
         const isModerator = req.user && ['moderator', 'admin'].includes(req.user.role);
-        if (!isModerator) {
-            query.status = 'active';
-        }
 
         if (before) {
             query.createdAt = { $lt: new Date(before) };
@@ -40,11 +42,24 @@ exports.getMessagesByReportId = async (req, res, next) => {
             .populate('sender', 'name profileImage')
             .lean();
 
+        // Sanitize messages for non-moderators
+        const sanitizedMessages = messages.map(msg => {
+            if (!isModerator && msg.status === 'deleted') {
+                return {
+                    ...msg,
+                    content: '', // Clear content
+                    metadata: {}, // Clear metadata
+                    sanitized: true // Flag for frontend
+                };
+            }
+            return msg;
+        });
+
         // Return messages in chronological order (oldest -> newest) for UI
         res.status(200).json({
             success: true,
-            count: messages.length,
-            data: messages.reverse()
+            count: sanitizedMessages.length,
+            data: sanitizedMessages.reverse()
         });
     } catch (error) {
         next(error);
@@ -68,10 +83,44 @@ exports.createMessage = async (req, res, next) => {
             });
         }
 
+        // Get full user info for moderation checks
+        const sender = await User.findById(req.user._id);
+
+        // Skip moderation checks for moderators and admins
+        const isModerator = ['moderator', 'admin'].includes(sender.role);
+
+        if (!isModerator) {
+            // Check if user is permanently banned
+            if (sender.banPermanent) {
+                return res.status(403).json({
+                    success: false,
+                    message: `Tu cuenta está suspendida permanentemente. Razón: ${sender.banReason || 'Violación de normas'}`
+                });
+            }
+
+            // Check if user is temporarily banned
+            if (sender.bannedUntil && sender.bannedUntil > new Date()) {
+                return res.status(403).json({
+                    success: false,
+                    message: `Tu cuenta está suspendida hasta: ${sender.bannedUntil.toLocaleString('es-ES')}. Razón: ${sender.banReason || 'Violación de normas'}`
+                });
+            }
+
+            // Check if user is muted in chat
+            if (sender.chatMuteUntil && sender.chatMuteUntil > new Date()) {
+                return res.status(403).json({
+                    success: false,
+                    message: `No puedes enviar mensajes. Silenciado hasta: ${sender.chatMuteUntil.toLocaleString('es-ES')}. Razón: ${sender.chatMuteReason || 'Violación de normas del chat'}`
+                });
+            }
+        }
+
         // Create message
         const message = await Message.create({
             reportId,
             sender: req.user._id,
+            senderRole: sender.role,
+            senderName: sender.name,
             content,
             type,
             metadata

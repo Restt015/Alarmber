@@ -6,8 +6,8 @@ import { useAuth } from '../../../context/AuthContext';
 import modChatsService from '../../../services/modChatsService';
 
 export default function ModChatScreen() {
-    const { reportId } = useLocalSearchParams();
-    const { user } = useAuth();
+    const { reportId, highlight } = useLocalSearchParams();
+    const { user, token } = useAuth();
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -39,7 +39,8 @@ export default function ModChatScreen() {
             <ReportChat
                 reportId={reportId}
                 currentUserId={user._id}
-                token={user.token}
+                token={token}
+                highlightMessageId={highlight}
             />
         </View>
     );

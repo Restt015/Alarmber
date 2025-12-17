@@ -14,9 +14,9 @@ import {
 } from 'react-native';
 
 import EmptyState from '../../components/mod/EmptyState';
+import NotificationCard from '../../components/mod/NotificationCard';
 import useDebounce from '../../hooks/useDebounce';
 import modInboxService from '../../services/modInboxService';
-import moderationService from '../../services/moderationService';
 
 export default function ModInboxScreen() {
     const router = useRouter();
@@ -118,7 +118,20 @@ export default function ModInboxScreen() {
 
         switch (action) {
             case 'openChat':
-                if (rid) router.push(`/(mod)/chat/${rid}`);
+                if (rid) {
+                    // Determine message to highlight
+                    let highlightMsgId = null;
+                    if (notification.type === 'message_reported' && notification.meta?.messageId) {
+                        highlightMsgId = notification.meta.messageId;
+                    } else if (notification.type === 'spam_detected' && notification.meta?.messageIds?.length > 0) {
+                        highlightMsgId = notification.meta.messageIds[0];
+                    }
+
+                    router.push({
+                        pathname: `/(mod)/chat/${rid}`,
+                        params: highlightMsgId ? { highlight: highlightMsgId } : {}
+                    });
+                }
                 break;
 
             case 'openReport':
@@ -133,14 +146,18 @@ export default function ModInboxScreen() {
                         style: 'destructive',
                         onPress: async () => {
                             try {
-                                await moderationService.deleteMessage(
-                                    notification.messageId,
-                                    notification?.meta?.reason || 'Reportado'
+                                await modInboxService.deleteMessages(
+                                    rid,
+                                    [notification.messageId || notification.meta?.messageId],
+                                    notification?.meta?.reason || 'Reportado',
+                                    notification._id
                                 );
-                                await modInboxService.markResolved(notification._id);
+                                // Backend now handles auto-resolve
+                                setNotifications(prev => prev.filter(n => n._id !== notification._id));
+                                loadStats();
                                 Alert.alert('✅', 'Mensaje eliminado');
-                                loadData();
                             } catch (error) {
+                                console.error('Delete error:', error);
                                 Alert.alert('Error', 'No se pudo eliminar');
                             }
                         },
@@ -157,11 +174,172 @@ export default function ModInboxScreen() {
                 break;
 
             case 'resolve':
+                Alert.alert(
+                    'Resolver Caso',
+                    '¿Qué acción deseas tomar antes de cerrar?',
+                    [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                            text: 'Solo Marcar Resuelto',
+                            onPress: async () => {
+                                try {
+                                    setNotifications(prev => prev.filter(n => n._id !== notification._id));
+                                    await modInboxService.markResolved(notification._id);
+                                    loadStats();
+                                } catch (error) {
+                                    Alert.alert('Error', 'No se pudo resolver');
+                                    loadData();
+                                }
+                            }
+                        },
+                        {
+                            text: 'Advertir Usuario...',
+                            onPress: () => handleAction('warn', notification)
+                        },
+                        {
+                            text: 'Silenciar Usuario...',
+                            onPress: () => handleAction('mute', notification)
+                        },
+                        {
+                            text: 'Eliminar Mensaje(s)...',
+                            onPress: () => handleAction('deleteMessage', notification) // Or deleteMessages depending on type
+                        }
+                    ]
+                );
+                break;
+
+            case 'spamCleanup':
+                // Show action sheet for spam cleanup options
+                Alert.alert(
+                    'Moderación de Spam',
+                    `Acciones para ${notification?.meta?.count || 1} incidente(s)`,
+                    [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                            text: 'Solo resolver',
+                            onPress: () => executeSpamCleanup(notification._id, 'resolve_only')
+                        },
+                        {
+                            text: 'Resolver + Borrar mensajes',
+                            onPress: () => executeSpamCleanup(notification._id, 'resolve_and_delete_messages')
+                        },
+                        {
+                            text: 'Borrar + Mutear 1h',
+                            style: 'destructive',
+                            onPress: () => executeSpamCleanup(notification._id, 'resolve_delete_and_mute_1h')
+                        },
+                        {
+                            text: 'Borrar + Mutear 24h',
+                            style: 'destructive',
+                            onPress: () => executeSpamCleanup(notification._id, 'resolve_delete_and_mute_24h')
+                        }
+                    ]
+                );
+                break;
+
+            case 'expandGroup':
+                // For now, confirm action or navigate
+                // Ideally prompt to "Manage Group"
+                handleAction('spamCleanup', notification);
+                break;
+
+            case 'deleteMessages':
+                const messageIds = notification?.meta?.messageIds || [];
+                const count = notification?.meta?.count || messageIds.length;
+
+                Alert.alert(
+                    'Eliminar mensajes de spam',
+                    `¿Eliminar ${count} mensaje(s)?`,
+                    [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                            text: 'Eliminar',
+                            style: 'destructive',
+                            onPress: async () => {
+                                try {
+                                    await modInboxService.deleteMessages(
+                                        rid,
+                                        messageIds,
+                                        'Spam detectado',
+                                        notification._id
+                                    );
+                                    await modInboxService.markResolved(notification._id);
+                                    setNotifications(prev => prev.filter(n => n._id !== notification._id));
+                                    loadStats();
+                                    Alert.alert('✅', 'Mensajes eliminados');
+                                    if (notification.reportId) {
+                                        const reportId = typeof notification.reportId === 'object' ? notification.reportId._id : notification.reportId;
+
+                                        // Determine message to highlight
+                                        let highlightMsgId = null;
+                                        const type = notification.type; // Assuming notification.type exists
+                                        if (type === 'message_reported' && notification.meta?.messageId) {
+                                            highlightMsgId = notification.meta.messageId;
+                                        } else if (type === 'spam_detected' && notification.meta?.messageIds?.length > 0) {
+                                            highlightMsgId = notification.meta.messageIds[0];
+                                        }
+
+                                        router.push({
+                                            pathname: `/(mod)/chat/${reportId}`,
+                                            params: highlightMsgId ? { highlight: highlightMsgId } : {}
+                                        });
+                                    } else {
+                                        Alert.alert('Error', 'No se encontró el reporte asociado');
+                                    }
+                                } catch (error) {
+                                    console.error('Error deleting messages:', error);
+                                    Alert.alert('Error', 'No se pudieron eliminar los mensajes');
+                                }
+                            }
+                        }
+                    ]
+                );
+                break;
+
+            case 'warn':
+                Alert.alert(
+                    'Advertir usuario',
+                    'Selecciona plantilla de advertencia',
+                    [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                            text: 'Spam',
+                            onPress: () => executeWarn(uid, rid, notification._id, 'spam_detected', notification?.meta)
+                        },
+                        {
+                            text: 'Lenguaje',
+                            onPress: () => executeWarn(uid, rid, notification._id, 'inappropriate_language')
+                        },
+                        {
+                            text: 'Off-topic',
+                            onPress: () => executeWarn(uid, rid, notification._id, 'off_topic')
+                        }
+                    ]
+                );
+                break;
+
+            case 'ban':
+                Alert.alert(
+                    'Suspender usuario',
+                    '¿Por cuánto tiempo?',
+                    [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                            text: '24 horas',
+                            style: 'destructive',
+                            onPress: () => executeBan(uid, rid, notification._id, 86400)
+                        }
+                    ]
+                );
+                break;
+
+            case 'slowmode':
                 try {
-                    await modInboxService.markResolved(notification._id);
-                    loadData();
+                    await modInboxService.setSlowmode(rid, 15, 'Control de spam', notification._id);
+                    Alert.alert('✅', 'Slowmode activado (15s)');
                 } catch (error) {
-                    Alert.alert('Error', 'No se pudo resolver');
+                    console.error('Error setting slowmode:', error);
+                    Alert.alert('Error', 'No se pudo activar slowmode');
                 }
                 break;
 
@@ -172,12 +350,61 @@ export default function ModInboxScreen() {
 
     const muteUser = async (userId, notificationId, duration) => {
         try {
-            await moderationService.muteUser(userId, duration, 'Reportado');
+            const rid = notifications.find(n => n._id === notificationId)?.reportId?._id;
+            await modInboxService.muteUser(userId, duration, 'Reportado', rid, notificationId);
             await modInboxService.markResolved(notificationId);
+            setNotifications(prev => prev.filter(n => n._id !== notificationId));
+            loadStats();
             Alert.alert('✅', 'Usuario silenciado');
-            loadData();
         } catch (error) {
+            console.error('Error muting user:', error);
             Alert.alert('Error', 'No se pudo silenciar');
+            loadData();
+        }
+    };
+
+    const executeWarn = async (userId, reportId, notificationId, template, meta = {}) => {
+        try {
+            await modInboxService.warnUser(userId, reportId, template, '', meta, notificationId);
+            Alert.alert('✅', 'Usuario advertido');
+        } catch (error) {
+            console.error('Error warning user:', error);
+            Alert.alert('Error', 'No se pudo advertir al usuario');
+        }
+    };
+
+    const executeBan = async (userId, reportId, notificationId, durationSeconds) => {
+        try {
+            await modInboxService.banUser(userId, durationSeconds, 'Violación de normas', reportId, notificationId);
+            await modInboxService.markResolved(notificationId);
+            setNotifications(prev => prev.filter(n => n._id === notificationId));
+            loadStats();
+            Alert.alert('✅', 'Usuario suspendido');
+        } catch (error) {
+            console.error('Error banning user:', error);
+            Alert.alert('Error', 'No se pudo suspender al usuario');
+            loadData();
+        }
+    };
+
+    const executeSpamCleanup = async (notificationId, actionMode) => {
+        try {
+            // Optimistic update
+            setNotifications(prev => prev.filter(n => n._id === notificationId));
+
+            const response = await modInboxService.spamCleanup(notificationId, actionMode);
+            loadStats();
+
+            // Show success message from server
+            if (response?.success && response.message) {
+                Alert.alert('✅ Spam Limpiado', response.message);
+            } else {
+                Alert.alert('✅', 'Spam resuelto correctamente');
+            }
+        } catch (error) {
+            console.error('Error cleaning spam:', error);
+            Alert.alert('Error', 'No se pudo limpiar el spam');
+            loadData(); // Reload on error
         }
     };
 
@@ -257,6 +484,11 @@ export default function ModInboxScreen() {
                             active={activeTab === 'system'}
                             onPress={() => setActiveTab('system')}
                         />
+                        <TabButton
+                            label="Resueltos"
+                            active={activeTab === 'resolved'}
+                            onPress={() => setActiveTab('resolved')}
+                        />
                     </View>
                 </View>
 
@@ -268,8 +500,52 @@ export default function ModInboxScreen() {
 
     const ItemSeparator = () => <View style={{ height: 12 }} />;
 
+    // Grouping Logic
+    const groupedNotifications = useMemo(() => {
+        if (!notifications.length) return [];
+
+        // Only group spam in system tab or pending tabs? 
+        // User said: "Agrupar spam detectado... Agrupar por: targetUserId + reportId + type"
+        // Let's group spam_detected generally.
+
+        const groups = {};
+        const result = [];
+
+        notifications.forEach(n => {
+            if (n.type === 'spam_detected') {
+                const key = `${n.targetUserId}_${n.reportId}_${n.type}`;
+                if (!groups[key]) {
+                    groups[key] = {
+                        ...n,
+                        isGroup: true,
+                        meta: { ...n.meta, count: n.meta?.count || 1 },
+                        groupItems: [n]
+                    };
+                    result.push(groups[key]);
+                } else {
+                    // Update existing group
+                    groups[key].meta.count += (n.meta?.count || 1);
+                    groups[key].groupItems.push(n);
+                    // Keep latest date
+                    if (new Date(n.createdAt) > new Date(groups[key].createdAt)) {
+                        groups[key].createdAt = n.createdAt;
+                    }
+                }
+            } else {
+                result.push(n);
+            }
+        });
+
+        // Sort by date desc (after grouping updates)
+        return result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }, [notifications]);
+
     const renderNotificationCard = ({ item }) => (
-        <NotificationCard notification={item} onAction={handleAction} />
+        <NotificationCard
+            notification={item}
+            onAction={handleAction}
+            isGroup={item.isGroup}
+        />
     );
 
     if (loading && !refreshing && notifications.length === 0) {
@@ -283,29 +559,23 @@ export default function ModInboxScreen() {
 
     return (
         <View className="flex-1 bg-gray-50">
+            {listHeader}
+
             <FlatList
-                data={Array.isArray(notifications) ? notifications : []}
+                data={groupedNotifications}
                 renderItem={renderNotificationCard}
-                keyExtractor={(item) => item._id}
-                ItemSeparatorComponent={ItemSeparator}
-                ListHeaderComponent={listHeader}
+                keyExtractor={item => item._id}
+                contentContainerStyle={{ paddingBottom: 20, paddingTop: 10 }}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#D32F2F" />
+                    <RefreshControl refreshing={refreshing} onRefresh={loadData} colors={["#D32F2F"]} />
                 }
                 ListEmptyComponent={
-                    <View className="px-4 py-10">
-                        <EmptyState
-                            icon="notifications-off-outline"
-                            message={`No hay notificaciones ${activeTab === 'pending' ? 'pendientes' : ''}`}
-                        />
-                    </View>
+                    <EmptyState
+                        icon="mail-open-outline"
+                        title="Todo limpio"
+                        message="No hay notificaciones en esta sección"
+                    />
                 }
-                contentContainerStyle={{
-                    paddingHorizontal: 16,
-                    paddingBottom: 24,
-                    flexGrow: notifications?.length ? 0 : 1,
-                }}
-                showsVerticalScrollIndicator={false}
             />
         </View>
     );
@@ -356,139 +626,3 @@ function FilterChip({ label, active, onPress }) {
     );
 }
 
-function NotificationCard({ notification, onAction }) {
-    const { type, title, preview, priority, status, meta, createdAt, reportId } = notification;
-
-    const borderBg = (() => {
-        if (priority === 'high') return 'border-red-500 bg-red-50';
-        if (priority === 'medium') return 'border-yellow-500 bg-yellow-50';
-        return 'border-gray-200 bg-white';
-    })();
-
-    const iconName =
-        type === 'message_reported'
-            ? 'flag'
-            : type === 'spam_detected'
-                ? 'warning'
-                : 'information-circle';
-
-    const iconColor = priority === 'high' ? '#EF4444' : priority === 'medium' ? '#F59E0B' : '#6B7280';
-
-    const timeAgo = (date) => {
-        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-        if (seconds < 60) return 'Ahora';
-        const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) return `${minutes}m`;
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}h`;
-        const days = Math.floor(hours / 24);
-        return `${days}d`;
-    };
-
-    return (
-        <View
-            className={`p-4 rounded-2xl border-l-4 ${borderBg} ${status === 'unread' ? 'opacity-100' : 'opacity-80'}`}
-            style={{
-                shadowColor: '#000',
-                shadowOpacity: status === 'unread' ? 0.06 : 0.02,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 6 },
-            }}
-        >
-            {/* Header */}
-            <View className="flex-row items-center mb-2">
-                <Ionicons name={iconName} size={18} color={iconColor} />
-                <Text className="font-bold text-gray-900 ml-2 flex-1" numberOfLines={1}>
-                    {title}
-                </Text>
-                {status === 'unread' ? <View className="w-2.5 h-2.5 bg-red-500 rounded-full" /> : null}
-            </View>
-
-            {/* Preview */}
-            {preview ? (
-                <Text className="text-gray-700 text-[13px] mb-3" numberOfLines={3}>
-                    {preview}
-                </Text>
-            ) : null}
-
-            {/* Meta row */}
-            <View className="flex-row items-center flex-wrap mb-3">
-                <Text className="text-[12px] text-gray-400">{timeAgo(createdAt)}</Text>
-
-                {meta?.count > 1 ? (
-                    <View className="ml-2 px-2 py-0.5 bg-red-600 rounded-full">
-                        <Text className="text-white text-[11px] font-bold">{meta.count} reportes</Text>
-                    </View>
-                ) : null}
-
-                {priority === 'high' ? (
-                    <View className="ml-2 px-2 py-0.5 bg-red-600 rounded-full">
-                        <Text className="text-white text-[11px] font-bold">URGENTE</Text>
-                    </View>
-                ) : null}
-
-                {reportId?.name ? (
-                    <Text className="ml-2 text-[12px] text-gray-500" numberOfLines={1}>
-                        • {reportId.name}
-                    </Text>
-                ) : null}
-            </View>
-
-            {/* Actions (solo botones) */}
-            <View className="flex-row flex-wrap" style={{ gap: 8 }}>
-                <ActionButton label="Ver" icon="eye-outline" color="blue" onPress={() => onAction('openReport', notification)} />
-
-                {type === 'message_reported' ? (
-                    <>
-                        <ActionButton
-                            label="Eliminar"
-                            icon="trash-outline"
-                            color="red"
-                            onPress={() => onAction('deleteMessage', notification)}
-                        />
-                        <ActionButton
-                            label="Mutear"
-                            icon="mic-off-outline"
-                            color="orange"
-                            onPress={() => onAction('mute', notification)}
-                        />
-                        <ActionButton
-                            label="Chat"
-                            icon="chatbubble-ellipses-outline"
-                            color="gray"
-                            onPress={() => onAction('openChat', notification)}
-                        />
-                    </>
-                ) : null}
-
-                <ActionButton
-                    label="Resolver"
-                    icon="checkmark-circle-outline"
-                    color="green"
-                    onPress={() => onAction('resolve', notification)}
-                />
-            </View>
-        </View>
-    );
-}
-
-function ActionButton({ label, icon, color = 'blue', onPress }) {
-    const colors = {
-        blue: 'bg-blue-500',
-        red: 'bg-red-500',
-        green: 'bg-green-500',
-        orange: 'bg-orange-500',
-        gray: 'bg-gray-600',
-    };
-
-    return (
-        <TouchableOpacity
-            className={`${colors[color]} px-3 py-2 rounded-full flex-row items-center`}
-            onPress={onPress}
-            activeOpacity={0.85}
-        >
-            <Ionicons name={icon} size={14} color="white" />
-            <Text className="text-white text-[12px] font-semibold ml-1">{label}</Text>
-        </TouchableOpacity>
-    );
-}

@@ -1,5 +1,6 @@
 const ModNotification = require('../models/ModNotification');
 const MessageReport = require('../models/MessageReport');
+const Message = require('../models/Message'); // Import Message model for hydration
 
 // @desc    Get mod inbox notifications
 // @route   GET /api/mod/inbox
@@ -13,17 +14,23 @@ exports.getInbox = async (req, res, next) => {
 
         switch (tab) {
             case 'pending':
-                // Pending: unread/read notifications that need action (not system events, not resolved)
-                query.type = { $ne: 'system_event' };
+                // Pending: unread/read notifications that need action (exclude system types and resolved)
+                query.type = { $nin: ['system_event', 'chat_status_changed', 'spam_detected'] };
                 query.status = { $ne: 'resolved' };
                 break;
             case 'reported':
-                // Reported: message reports specifically
+                // Reported: message reports specifically (not resolved)
                 query.type = 'message_reported';
+                query.status = { $ne: 'resolved' };
                 break;
             case 'system':
-                // System: audit/event logs
-                query.type = { $in: ['system_event', 'chat_status_changed'] };
+                // System: audit/event logs including spam_detected (not resolved)
+                query.type = { $in: ['system_event', 'chat_status_changed', 'spam_detected'] };
+                query.status = { $ne: 'resolved' };
+                break;
+            case 'resolved':
+                // Resolved: all resolved notifications for audit history
+                query.status = 'resolved';
                 break;
         }
 
@@ -52,9 +59,47 @@ exports.getInbox = async (req, res, next) => {
             .skip(skip)
             .limit(parseInt(limit))
             .populate('reportId', 'name status priority')
-            .populate('targetUserId', 'name email')
+            .populate('targetUserId', 'name email profileImage')
             .populate('actionBy', 'name')
             .lean();
+
+        // --- HYDRATION STEP ---
+        // Fetch related data that isn't directly populated (like dynamic meta.messageId)
+
+        // 1. Collect Message IDs for hydration
+        const messageIds = notifications
+            .filter(n => n.type === 'message_reported' && n.meta?.messageId)
+            .map(n => n.meta.messageId);
+
+        let messagesMap = {};
+        if (messageIds.length > 0) {
+            const messages = await Message.find({ _id: { $in: messageIds } })
+                .select('content createdAt sender type')
+                .lean();
+            messages.forEach(m => messagesMap[m._id.toString()] = m);
+        }
+
+        // 2. Hydrate notifications
+        notifications.forEach(n => {
+            // Hydrate Message Reported
+            if (n.type === 'message_reported' && n.meta?.messageId) {
+                const msg = messagesMap[n.meta.messageId.toString()];
+                if (msg) {
+                    n.preview = msg.content; // Direct preview for UI
+                    n.meta.messageDetail = msg; // Full detail for Case View
+                } else {
+                    n.preview = "Mensaje no disponible (eliminado)";
+                }
+            }
+
+            // Hydrate Spam Detected (Generate better preview)
+            if (n.type === 'spam_detected') {
+                if (!n.preview) {
+                    const count = n.meta?.count || n.meta?.messageIds?.length || 0;
+                    n.preview = `Usuario envió ${count} mensajes rápidamente.`;
+                }
+            }
+        });
 
         const total = await ModNotification.countDocuments(query);
 
@@ -90,7 +135,7 @@ exports.getStats = async (req, res, next) => {
 
         const critical = await ModNotification.countDocuments({
             priority: 'high',
-            status: 'unread'
+            status: { $in: ['unread', 'read'] } // Only unread/read, not resolved
         });
 
         res.json({
@@ -145,11 +190,18 @@ exports.markRead = async (req, res, next) => {
 // @access  Moderator+
 exports.markResolved = async (req, res, next) => {
     try {
+        const { resolutionNote } = req.body;
+
         const notification = await ModNotification.findByIdAndUpdate(
             req.params.id,
-            { status: 'resolved' },
+            {
+                status: 'resolved',
+                'meta.resolvedAt': new Date(),
+                'meta.resolvedBy': req.user._id,
+                'meta.resolutionNote': resolutionNote || ''
+            },
             { new: true }
-        );
+        ).populate('meta.resolvedBy', 'name');
 
         if (!notification) {
             return res.status(404).json({

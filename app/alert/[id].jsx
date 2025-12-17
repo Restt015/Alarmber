@@ -7,13 +7,12 @@ import {
   Platform,
   ScrollView,
   Text,
-  View,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { Button } from "react-native-paper";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { TouchableOpacity } from "react-native";
-import CommentInput from "../../components/alerts/CommentInput";
 import InfoRow from "../../components/alerts/InfoRow";
 import ReporterBox from "../../components/alerts/ReporterBox";
 import ReportChat from "../../components/reports/ReportChat";
@@ -28,7 +27,7 @@ export default function AlertDetailScreen() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'chat'
+  const [activeTab, setActiveTab] = useState('details');
   const [token, setToken] = useState(null);
 
   useEffect(() => {
@@ -209,171 +208,155 @@ export default function AlertDetailScreen() {
           {/* CONTENT AREA */}
           <View className="flex-1 bg-gray-50">
             {activeTab === 'details' ? (
-              <View className="flex-1">
-                <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                  {/* PHOTO & STATUS */}
-                  <View className="relative w-full h-[320px] bg-gray-100">
-                    {report.photo ? (
-                      <Image
-                        source={{ uri: report.photo }}
-                        className="w-full h-full"
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View className="w-full h-full bg-gray-200 items-center justify-center">
-                        <Ionicons name="person-outline" size={80} color="#9CA3AF" />
-                      </View>
-                    )}
-                    <View
-                      className="absolute bottom-4 right-4 px-4 py-1.5 rounded-full shadow-md"
-                      style={{ backgroundColor: statusColor }}
-                    >
-                      <Text className="text-white text-[12px] font-bold tracking-wider">
-                        {getStatusLabel(report.status)}
-                      </Text>
-                    </View>
-
-                    {/* Views Counter */}
-                    <View
-                      className="absolute bottom-4 left-4 px-3 py-1.5 rounded-full flex-row items-center"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-                    >
-                      <Ionicons name="eye" size={14} color="white" />
-                      <Text className="text-white text-[12px] font-semibold ml-1">
-                        {report.views || 0} {(report.views || 0) === 1 ? 'vista' : 'vistas'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* REPORTER INFO */}
-                  <View className="px-5 py-4 bg-white border-b border-gray-100">
-                    <ReporterBox
-                      name={reporterName}
-                      profileImage={report.reportedBy?.profileImage}
-                      relationship={report.relationship}
-                      time={formatDate(report.createdAt)}
-                      activityStatus={report.reportedBy?.activityStatus}
-                      isOwner={isOwner}
+              <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+                {/* PHOTO & STATUS */}
+                <View className="relative w-full h-[320px] bg-gray-100">
+                  {report.photo ? (
+                    <Image
+                      source={{ uri: report.photo }}
+                      className="w-full h-full"
+                      resizeMode="cover"
                     />
-                  </View>
-
-                  {/* DETAILS TEXT */}
-                  <View className="p-5 bg-white">
-                    <Text className="text-[28px] font-black text-gray-900 tracking-tight leading-8 mb-1">
-                      {report.name}
-                    </Text>
-                    <View className="flex-row items-center mb-6">
-                      <Text className="text-[16px] text-gray-500 font-medium">
-                        Edad: {report.age} años
-                      </Text>
-                      {report.gender && (
-                        <Text className="text-[16px] text-gray-500 font-medium ml-2">
-                          • {report.gender === 'male' ? 'Hombre' : report.gender === 'female' ? 'Mujer' : 'Otro'}
-                        </Text>
-                      )}
-                      {report.priority && report.priority !== 'medium' && report.priority !== 'low' && (
-                        <View
-                          className="ml-2 px-2 py-0.5 rounded-full"
-                          style={{
-                            backgroundColor: report.priority === 'high' || report.priority === 'critical' ? '#FFEBEE' : '#FFF3E0'
-                          }}
-                        >
-                          <Text
-                            className="text-[11px] font-bold uppercase"
-                            style={{
-                              color: report.priority === 'high' || report.priority === 'critical' ? '#D32F2F' : '#FF9800'
-                            }}
-                          >
-                            {report.priority === 'high' || report.priority === 'critical' ? '🔴 Alta' : '🟡 Media'}
-                          </Text>
-                        </View>
-                      )}
-                      {report.createdByAdmin && (
-                        <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#E3F2FD' }}>
-                          <Text className="text-[11px] font-bold" style={{ color: '#1976D2' }}>
-                            👮 Reporte Oficial
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    <InfoRow
-                      icon="location-outline"
-                      label="Última Ubicación"
-                      value={report.lastLocation}
-                    />
-                    <InfoRow
-                      icon="time-outline"
-                      label="Reportado"
-                      value={formatDate(report.createdAt)}
-                    />
-                    <InfoRow
-                      icon="body-outline"
-                      label="Descripción física"
-                      value={report.description}
-                    />
-                    <InfoRow
-                      icon="shirt-outline"
-                      label="Vestimenta"
-                      value={report.clothing}
-                    />
-                    {report.circumstances && (
-                      <InfoRow
-                        icon="alert-circle-outline"
-                        label="Circunstancias"
-                        value={report.circumstances}
-                      />
-                    )}
-                    {report.contactPhone && (
-                      <InfoRow
-                        icon="call-outline"
-                        label="Teléfono de contacto"
-                        value={report.contactPhone}
-                      />
-                    )}
-                    {report.contactEmail && (
-                      <InfoRow
-                        icon="mail-outline"
-                        label="Email de contacto"
-                        value={report.contactEmail}
-                        isLast={true}
-                      />
-                    )}
-                  </View>
-
-                  {/* VALIDATION INFO */}
-                  {report.validated && report.validatedAt && (
-                    <View className="mt-6 bg-green-50 rounded-2xl p-4 mx-5">
-                      <View className="flex-row items-center">
-                        <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                        <Text className="text-green-800 font-bold text-[15px] ml-2">
-                          Reporte Validado
-                        </Text>
-                      </View>
-                      <Text className="text-green-700 text-[13px] mt-2">
-                        Verificado el {formatDate(report.validatedAt)}
-                      </Text>
+                  ) : (
+                    <View className="w-full h-full bg-gray-200 items-center justify-center">
+                      <Ionicons name="person-outline" size={80} color="#9CA3AF" />
                     </View>
                   )}
-
-                  {/* COMMENTS SECTION */}
-                  <View className="p-5 bg-white border-t border-gray-100 pb-10">
-                    <Text className="text-[18px] font-bold text-gray-900 mb-6">
-                      Discusión / Aportes
+                  <View
+                    className="absolute bottom-4 right-4 px-4 py-1.5 rounded-full shadow-md"
+                    style={{ backgroundColor: statusColor }}
+                  >
+                    <Text className="text-white text-[12px] font-bold tracking-wider">
+                      {getStatusLabel(report.status)}
                     </Text>
-                    <View className="py-8 items-center">
-                      <Ionicons name="chatbubbles-outline" size={40} color="#BDBDBD" />
-                      <Text className="text-gray-500 text-[14px] mt-3 text-center">
-                        La sección de comentarios estará disponible próximamente
-                      </Text>
-                    </View>
                   </View>
 
-                  {/* Spacer */}
-                  <View className="h-20" />
-                </ScrollView>
-                <CommentInput />
-              </View>
+                  {/* Views Counter */}
+                  <View
+                    className="absolute bottom-4 left-4 px-3 py-1.5 rounded-full flex-row items-center"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+                  >
+                    <Ionicons name="eye" size={14} color="white" />
+                    <Text className="text-white text-[12px] font-semibold ml-1">
+                      {report.views || 0} {(report.views || 0) === 1 ? 'vista' : 'vistas'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* REPORTER INFO */}
+                <View className="px-5 py-4 bg-white border-b border-gray-100">
+                  <ReporterBox
+                    name={reporterName}
+                    profileImage={report.reportedBy?.profileImage}
+                    relationship={report.relationship}
+                    time={formatDate(report.createdAt)}
+                    activityStatus={report.reportedBy?.activityStatus}
+                    isOwner={isOwner}
+                  />
+                </View>
+
+                {/* DETAILS TEXT */}
+                <View className="p-5 bg-white">
+                  <Text className="text-[28px] font-black text-gray-900 tracking-tight leading-8 mb-1">
+                    {report.name}
+                  </Text>
+                  <View className="flex-row items-center flex-wrap mb-6">
+                    <Text className="text-[16px] text-gray-500 font-medium">
+                      Edad: {report.age} años
+                    </Text>
+                    {report.gender && (
+                      <Text className="text-[16px] text-gray-500 font-medium ml-2">
+                        • {report.gender === 'male' ? 'Hombre' : report.gender === 'female' ? 'Mujer' : 'Otro'}
+                      </Text>
+                    )}
+                    {report.priority && report.priority !== 'medium' && report.priority !== 'low' && (
+                      <View
+                        className="ml-2 px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: report.priority === 'high' || report.priority === 'critical' ? '#FFEBEE' : '#FFF3E0'
+                        }}
+                      >
+                        <Text
+                          className="text-[11px] font-bold uppercase"
+                          style={{
+                            color: report.priority === 'high' || report.priority === 'critical' ? '#D32F2F' : '#FF9800'
+                          }}
+                        >
+                          {report.priority === 'high' || report.priority === 'critical' ? '🔴 Alta' : '🟡 Media'}
+                        </Text>
+                      </View>
+                    )}
+                    {report.createdByAdmin && (
+                      <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#E3F2FD' }}>
+                        <Text className="text-[11px] font-bold" style={{ color: '#1976D2' }}>
+                          👮 Reporte Oficial
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <InfoRow
+                    icon="location-outline"
+                    label="Última Ubicación"
+                    value={report.lastLocation}
+                  />
+                  <InfoRow
+                    icon="time-outline"
+                    label="Reportado"
+                    value={formatDate(report.createdAt)}
+                  />
+                  <InfoRow
+                    icon="body-outline"
+                    label="Descripción física"
+                    value={report.description}
+                  />
+                  <InfoRow
+                    icon="shirt-outline"
+                    label="Vestimenta"
+                    value={report.clothing}
+                  />
+                  {report.circumstances && (
+                    <InfoRow
+                      icon="alert-circle-outline"
+                      label="Circunstancias"
+                      value={report.circumstances}
+                    />
+                  )}
+                  {report.contactPhone && (
+                    <InfoRow
+                      icon="call-outline"
+                      label="Teléfono de contacto"
+                      value={report.contactPhone}
+                    />
+                  )}
+                  {report.contactEmail && (
+                    <InfoRow
+                      icon="mail-outline"
+                      label="Email de contacto"
+                      value={report.contactEmail}
+                      isLast={true}
+                    />
+                  )}
+                </View>
+
+                {/* VALIDATION INFO */}
+                {report.validated && report.validatedAt && (
+                  <View className="mt-4 bg-green-50 rounded-2xl p-4 mx-5">
+                    <View className="flex-row items-center">
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                      <Text className="text-green-800 font-bold text-[15px] ml-2">
+                        Reporte Validado
+                      </Text>
+                    </View>
+                    <Text className="text-green-700 text-[13px] mt-2">
+                      Verificado el {formatDate(report.validatedAt)}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Bottom Spacer */}
+                <View className="h-20" />
+              </ScrollView>
             ) : (
               <View className="flex-1 bg-white">
                 {user ? (
@@ -398,3 +381,5 @@ export default function AlertDetailScreen() {
     </View>
   );
 }
+
+

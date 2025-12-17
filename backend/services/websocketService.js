@@ -128,9 +128,10 @@ class WebSocketService {
             }
 
             // 2. Check mute status
-            if (user.mutedUntil && new Date() < new Date(user.mutedUntil)) {
-                const remaining = Math.ceil((new Date(user.mutedUntil) - new Date()) / 1000);
-                return this.send(ws, { action: 'error', message: `Estás silenciado. Espera ${remaining}s` });
+            if (user.chatMuteUntil && new Date() < new Date(user.chatMuteUntil)) {
+                const remaining = Math.ceil((new Date(user.chatMuteUntil) - new Date()) / 1000);
+                const reason = user.chatMuteReason || 'Violación de normas';
+                return this.send(ws, { action: 'error', message: `Estás silenciado. Razón: ${reason}. Espera ${remaining}s` });
             }
 
             // 3. Rate limiting check

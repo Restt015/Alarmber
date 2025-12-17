@@ -15,7 +15,9 @@ export default function WelcomeScreen() {
     useEffect(() => {
         if (!isLoading && user) {
             // User is authenticated, redirect based on role
-            if (role === 'moderator' || role === 'admin') {
+            if (role === 'admin') {
+                router.replace('/admin');
+            } else if (role === 'moderator') {
                 router.replace('/(mod)/inbox');
             } else {
                 router.replace('/(tabs)');

@@ -63,7 +63,20 @@ const modNotificationSchema = new mongoose.Schema({
         suggestedAction: String,
         slowmodeSeconds: Number,
         originalStatus: String,
-        description: String
+        description: String,
+        // Spam detection fields
+        messageIds: [mongoose.Schema.Types.ObjectId],
+        windowSeconds: Number,
+        firstMessageAt: Date,
+        lastMessageAt: Date,
+        rule: String,
+        // Resolution tracking
+        resolvedAt: Date,
+        resolvedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        resolutionNote: String
     }
 }, {
     timestamps: true

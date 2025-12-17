@@ -19,8 +19,26 @@ const notificationSchema = new mongoose.Schema({
     // Notification type
     type: {
         type: String,
-        enum: ['accepted', 'review', 'rejected', 'updated', 'comment', 'system'],
+        enum: [
+            'accepted',
+            'review',
+            'rejected',
+            'updated',
+            'comment',
+            'system',
+            'moderation_warning',
+            'moderation_mute',
+            'moderation_ban',
+            'message_deleted'
+        ],
         required: true
+    },
+
+    // Priority for moderation notifications
+    priority: {
+        type: String,
+        enum: ['low', 'medium', 'high', 'critical'],
+        default: 'medium'
     },
 
     // Notification content
