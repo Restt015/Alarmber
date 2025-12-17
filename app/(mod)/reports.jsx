@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -11,36 +11,59 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import EmptyState from '../../components/mod/EmptyState';
+import useDebounce from '../../hooks/useDebounce';
 import modReportsService from '../../services/modReportsService';
 
 export default function ModReportsScreen() {
     const router = useRouter();
+
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filters, setFilters] = useState({});
+
+    const debouncedSetSearch = useDebounce((value) => setDebouncedSearch(value), 400);
+
+    useEffect(() => {
+        debouncedSetSearch(search);
+    }, [search]);
 
     useEffect(() => {
         loadReports();
-    }, []);
-
-    useEffect(() => {
-        if (!loading) {
-            loadReports();
-        }
-    }, [filters, search]);
+    }, [debouncedSearch, filters]);
 
     const loadReports = async () => {
         try {
             setLoading(true);
             const response = await modReportsService.getModReports({
                 ...filters,
-                q: search
+                q: debouncedSearch,
             });
-            setReports(response.data || []);
+
+            let list = Array.isArray(response?.data) ? response.data : [];
+
+            // Sort: Urgent first, then by activity (lastMessageAt or createdAt)
+            list = list.sort((a, b) => {
+                const aUrgent = a?.priority === 'Alta' ? 1 : 0;
+                const bUrgent = b?.priority === 'Alta' ? 1 : 0;
+
+                if (aUrgent !== bUrgent) return bUrgent - aUrgent;
+
+                const aTime = new Date(a?.lastMessageAt || a?.createdAt || 0).getTime();
+                const bTime = new Date(b?.lastMessageAt || b?.createdAt || 0).getTime();
+                return bTime - aTime;
+            });
+
+            setReports(list);
         } catch (error) {
             console.error('Failed to load reports:', error);
+            setReports([]);
         } finally {
             setLoading(false);
         }
@@ -53,150 +76,251 @@ export default function ModReportsScreen() {
     };
 
     const toggleFilter = (key, value) => {
-        setFilters(prev => {
+        setFilters((prev) => {
             if (prev[key] === value) {
-                const newFilters = { ...prev };
-                delete newFilters[key];
-                return newFilters;
+                const next = { ...prev };
+                delete next[key];
+                return next;
             }
             return { ...prev, [key]: value };
         });
     };
 
-    const renderReportCard = ({ item }) => (
-        <TouchableOpacity
-            className="bg-white p-4 rounded-lg mb-3 shadow-sm"
-            onPress={() => router.push(`/alert/${item._id}`)}
-        >
-            <View className="flex-row justify-between items-start mb-2">
-                <Text className="font-bold text-gray-900 flex-1 text-base">
-                    {item.name}
-                </Text>
-                {item.priority === 'Alta' && (
-                    <View className="bg-red-600 px-2 py-1 rounded ml-2">
-                        <Text className="text-white text-xs font-bold">URGENTE</Text>
-                    </View>
-                )}
-            </View>
+    const handleReportPress = (report) => {
+        router.push(`/alert/${report._id}`);
+    };
 
-            <Text className="text-gray-600 text-sm mb-2" numberOfLines={2}>
-                {item.description}
-            </Text>
+    const openChat = (report) => {
+        router.push(`/(mod)/chat/${report._id}`);
+    };
 
-            <View className="flex-row items-center flex-wrap gap-2">
-                {item.activeChatCount > 0 && (
-                    <View className="bg-blue-100 px-2 py-1 rounded">
-                        <Text className="text-blue-700 text-xs">
-                            💬 {item.activeChatCount} mensajes
-                        </Text>
-                    </View>
-                )}
-                {item.chatStatus === 'closed' && (
-                    <View className="bg-gray-300 px-2 py-1 rounded">
-                        <Text className="text-gray-700 text-xs">🔒 CERRADO</Text>
-                    </View>
-                )}
-                {item.chatStatus === 'slowmode' && (
-                    <View className="bg-orange-100 px-2 py-1 rounded">
-                        <Text className="text-orange-700 text-xs">⏱️ LENTO</Text>
-                    </View>
-                )}
-                <Text className="text-gray-400 text-xs">
-                    {new Date(item.createdAt).toLocaleDateString()}
-                </Text>
-            </View>
-        </TouchableOpacity>
-    );
+    const ItemSeparator = () => <View style={{ height: 12 }} />;
 
-    if (loading && !refreshing) {
+    const renderReportCard = ({ item }) => {
+        const urgent = item?.priority === 'Alta';
+        const status = item?.status || 'Desconocido';
+        const hasMessages = (item?.activeChatCount || 0) > 0;
+
         return (
-            <View className="flex-1 items-center justify-center bg-gray-50">
-                <ActivityIndicator size="large" color="#D32F2F" />
-                <Text className="text-gray-500 mt-4">Cargando reportes...</Text>
+            <View className="bg-white rounded-2xl border border-gray-100 p-4">
+                {/* Header */}
+                <View className="flex-row items-start justify-between mb-2">
+                    <Text className="text-[16px] font-bold text-gray-900 flex-1 pr-3" numberOfLines={1}>
+                        {item?.name || 'Reporte'}
+                    </Text>
+
+                    {urgent && (
+                        <View className="bg-red-600 px-2 py-1 rounded-full">
+                            <Text className="text-white text-[11px] font-bold">URGENTE</Text>
+                        </View>
+                    )}
+                </View>
+
+                {/* Description */}
+                <Text className="text-gray-600 text-[13px] mb-3" numberOfLines={2}>
+                    {item?.description || 'Sin descripción'}
+                </Text>
+
+                {/* Badges and actions row */}
+                <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center flex-wrap" style={{ gap: 6 }}>
+                        {/* Status badge */}
+                        <View className={`px-2 py-1 rounded-full ${status === 'Abierto' ? 'bg-green-100' :
+                                status === 'Cerrado' ? 'bg-gray-200' :
+                                    'bg-blue-100'
+                            }`}>
+                            <Text className={`text-[11px] font-bold ${status === 'Abierto' ? 'text-green-700' :
+                                    status === 'Cerrado' ? 'text-gray-700' :
+                                        'text-blue-700'
+                                }`}>
+                                {status.toUpperCase()}
+                            </Text>
+                        </View>
+
+                        {/* Chat count */}
+                        {hasMessages && (
+                            <View className="bg-blue-100 px-2 py-1 rounded-full flex-row items-center">
+                                <Ionicons name="chatbubble" size={12} color="#3B82F6" />
+                                <Text className="text-blue-700 text-[11px] font-bold ml-1">
+                                    {item.activeChatCount}
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* Chat status */}
+                        {item?.chatStatus === 'closed' && (
+                            <View className="bg-gray-200 px-2 py-1 rounded-full flex-row items-center">
+                                <Ionicons name="lock-closed" size={12} color="#6B7280" />
+                                <Text className="text-gray-700 text-[11px] font-bold ml-1">CERRADO</Text>
+                            </View>
+                        )}
+
+                        {item?.chatStatus === 'slowmode' && (
+                            <View className="bg-orange-100 px-2 py-1 rounded-full flex-row items-center">
+                                <Ionicons name="time" size={12} color="#F97316" />
+                                <Text className="text-orange-700 text-[11px] font-bold ml-1">LENTO</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Quick action */}
+                    {hasMessages && (
+                        <TouchableOpacity
+                            onPress={() => openChat(item)}
+                            activeOpacity={0.8}
+                            className="bg-red-600 px-3 py-1.5 rounded-full flex-row items-center"
+                        >
+                            <Ionicons name="chatbubbles" size={14} color="white" />
+                            <Text className="text-white text-[11px] font-bold ml-1">CHAT</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {!hasMessages && (
+                        <TouchableOpacity
+                            onPress={() => handleReportPress(item)}
+                            activeOpacity={0.8}
+                            className="bg-gray-600 px-3 py-1.5 rounded-full"
+                        >
+                            <Text className="text-white text-[11px] font-bold">VER</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
+        );
+    };
+
+    const ListHeader = useMemo(() => {
+        const total = reports.length;
+        const urgent = reports.filter(r => r?.priority === 'Alta').length;
+
+        return (
+            <View>
+                {/* Filters */}
+                <View className="bg-white border-b border-gray-200 pb-3">
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 0 }}
+                    >
+                        <FilterChip
+                            label="Urgentes"
+                            active={filters.urgent === 'true'}
+                            onPress={() => toggleFilter('urgent', 'true')}
+                            color="red"
+                        />
+                        <FilterChip
+                            label="Abiertos"
+                            active={filters.status === 'Abierto'}
+                            onPress={() => toggleFilter('status', 'Abierto')}
+                            color="green"
+                        />
+                        <FilterChip
+                            label="Cerrados"
+                            active={filters.status === 'Cerrado'}
+                            onPress={() => toggleFilter('status', 'Cerrado')}
+                            color="gray"
+                        />
+                    </ScrollView>
+                </View>
+
+                <View style={{ height: 8 }} />
+            </View>
+        );
+    }, [search, filters, reports]);
+
+    if (loading && !refreshing && reports.length === 0) {
+        return (
+            <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+                <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator size="large" color="#D32F2F" />
+                    <Text className="text-gray-500 mt-4">Cargando reportes...</Text>
+                </View>
+            </SafeAreaView>
         );
     }
 
+    const total = reports.length;
+    const urgent = reports.filter(r => r?.priority === 'Alta').length;
+
     return (
-        <View className="flex-1 bg-gray-50">
-            {/* Header */}
-            <View className="bg-white px-4 py-3 border-b border-gray-200">
-                <Text className="text-xl font-bold text-gray-900 mb-3">Reportes</Text>
-                <View className="flex-row items-center bg-gray-100 rounded-full px-4 py-2">
-                    <Ionicons name="search" size={20} color="#9CA3AF" />
+        <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+            {/* Fixed Header */}
+            <View className="bg-white border-b border-gray-200 px-4 pt-2 pb-3">
+                <View className="flex-row items-center justify-between mb-3">
+                    <View>
+                        <Text className="text-[22px] font-bold text-gray-900">Reportes</Text>
+                        <Text className="text-[13px] text-gray-500 mt-0.5">
+                            {total > 0 ? (
+                                urgent > 0 ? `${total} reportes • ${urgent} urgentes` : `${total} reportes`
+                            ) : 'Sin reportes por ahora'}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* Search */}
+                <View className="flex-row items-center bg-gray-100 rounded-full px-4 py-2.5">
+                    <Ionicons name="search" size={18} color="#9CA3AF" />
                     <TextInput
-                        className="flex-1 ml-2 text-gray-900"
+                        className="flex-1 ml-2 text-gray-900 text-[15px]"
                         placeholder="Buscar reportes..."
+                        placeholderTextColor="#9CA3AF"
                         value={search}
                         onChangeText={setSearch}
                     />
+                    {search.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearch('')} activeOpacity={0.8}>
+                            <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
 
-            {/* Filters */}
-            <ScrollView
-                horizontal
-                className="bg-white px-4 py-2 border-b border-gray-200"
-                showsHorizontalScrollIndicator={false}
-            >
-                <TouchableOpacity
-                    className={`mr-2 px-4 py-1.5 rounded-full ${filters.urgent === 'true' ? 'bg-red-500' : 'bg-gray-200'
-                        }`}
-                    onPress={() => toggleFilter('urgent', 'true')}
-                >
-                    <Text
-                        className={`text-sm font-medium ${filters.urgent === 'true' ? 'text-white' : 'text-gray-700'
-                            }`}
-                    >
-                        Urgentes
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    className={`mr-2 px-4 py-1.5 rounded-full ${filters.status === 'Abierto' ? 'bg-green-500' : 'bg-gray-200'
-                        }`}
-                    onPress={() => toggleFilter('status', 'Abierto')}
-                >
-                    <Text
-                        className={`text-sm font-medium ${filters.status === 'Abierto' ? 'text-white' : 'text-gray-700'
-                            }`}
-                    >
-                        Abiertos
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    className={`mr-2 px-4 py-1.5 rounded-full ${filters.status === 'Cerrado' ? 'bg-gray-600' : 'bg-gray-200'
-                        }`}
-                    onPress={() => toggleFilter('status', 'Cerrado')}
-                >
-                    <Text
-                        className={`text-sm font-medium ${filters.status === 'Cerrado' ? 'text-white' : 'text-gray-700'
-                            }`}
-                    >
-                        Cerrados
-                    </Text>
-                </TouchableOpacity>
-            </ScrollView>
-
-            {/* Reports List */}
+            {/* List */}
             <FlatList
                 data={reports}
                 renderItem={renderReportCard}
                 keyExtractor={(item) => item._id}
+                ItemSeparatorComponent={ItemSeparator}
+                ListHeaderComponent={ListHeader}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+                    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#D32F2F" />
                 }
                 ListEmptyComponent={
-                    <View className="flex-1 items-center justify-center py-20">
-                        <Ionicons name="document-text-outline" size={64} color="#D1D5DB" />
-                        <Text className="text-gray-400 mt-4 text-center">
-                            No hay reportes
-                        </Text>
+                    <View className="px-4 py-10">
+                        <EmptyState
+                            icon="document-text-outline"
+                            message={search ? 'No se encontraron reportes' : 'No hay reportes'}
+                        />
                     </View>
                 }
-                contentContainerStyle={{ padding: 16, flexGrow: 1 }}
+                contentContainerStyle={{
+                    paddingHorizontal: 16,
+                    paddingTop: 8,
+                    paddingBottom: 24,
+                    flexGrow: reports?.length ? 0 : 1,
+                }}
+                showsVerticalScrollIndicator={false}
             />
-        </View>
+        </SafeAreaView>
+    );
+}
+
+function FilterChip({ label, active, onPress, color = 'gray' }) {
+    const bg = {
+        red: active ? 'bg-red-500' : 'bg-gray-200',
+        green: active ? 'bg-green-500' : 'bg-gray-200',
+        gray: active ? 'bg-gray-600' : 'bg-gray-200',
+    };
+
+    const text = active ? 'text-white' : 'text-gray-700';
+
+    return (
+        <TouchableOpacity
+            className={`mr-2 px-4 py-2 rounded-full ${bg[color]}`}
+            onPress={onPress}
+            activeOpacity={0.85}
+        >
+            <Text className={`text-[13px] font-semibold ${text}`}>{label}</Text>
+        </TouchableOpacity>
     );
 }

@@ -56,7 +56,7 @@ exports.getActiveChats = async (req, res) => {
             },
             {
                 $project: {
-                    reportId: '$_id',
+                    reportId: { $toString: '$_id' },
                     reportTitle: '$report.name',
                     reportStatus: '$report.status',
                     chatStatus: '$report.chatStatus',

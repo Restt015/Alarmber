@@ -1,8 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect } from 'react';
-import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { Dimensions, Image, StyleSheet, Text, View } from 'react-native';
+import { Button } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
@@ -89,7 +90,7 @@ export default function WelcomeScreen() {
                 <Text style={styles.footerText}>
                     Juntos hacemos una ciudad más segura
                 </Text>
-            </SafeAreaView>
+            </View>
         </View>
     );
 }
