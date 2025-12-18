@@ -39,7 +39,9 @@ const MessageItem = ({
     onLongPress,
     isModerator = false  // New prop to determine visibility of deleted messages
 }) => {
-    const isMine = item.sender._id === currentUserId || item.sender === currentUserId;
+    // Safely compare ObjectIds using string conversion
+    const itemSenderId = item.sender?._id || item.sender;
+    const isMine = String(itemSenderId) === String(currentUserId);
     const isDeleted = item.status === 'deleted';
     const isSystem = item.type === 'system';
     const isHighlighted = item._id === highlightMessageId;

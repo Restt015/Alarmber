@@ -58,11 +58,14 @@ const optionalAuth = async (req, res, next) => {
             const token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             req.user = await User.findById(decoded.id).select('-password');
+            console.log('🔐 [OptionalAuth] User found:', req.user ? `${req.user._id} (${req.user.role})` : 'NONE');
         } catch (error) {
+            console.log('🔐 [OptionalAuth] Token check failed:', error.message);
             // Token invalid or expired - continue without user
             req.user = null;
         }
     } else {
+        console.log('🔐 [OptionalAuth] No token provided');
         req.user = null;
     }
     next();

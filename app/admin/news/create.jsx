@@ -39,6 +39,56 @@ export default function CreateNews() {
         }
     };
 
+    /**
+     * Validates if news can be published without image
+     * Shows confirmation alert if trying to publish without image
+     */
+    const checkImageBeforePublish = () => {
+        return new Promise((resolve, reject) => {
+            // If publishing as draft, allow without validation
+            if (!isPublished) {
+                resolve(true);
+                return;
+            }
+
+            // If publishing AND has image, allow
+            if (isPublished && image) {
+                resolve(true);
+                return;
+            }
+
+            // If publishing without image, show confirmation
+            Alert.alert(
+                'Sin imagen',
+                'Estás a punto de publicar sin imagen. ¿Deseas continuar?',
+                [
+                    {
+                        text: 'Cancelar',
+                        style: 'cancel',
+                        onPress: () => reject('cancelled')
+                    },
+                    {
+                        text: 'Seleccionar imagen',
+                        onPress: async () => {
+                            try {
+                                await pickImage();
+                                resolve(true);
+                            } catch (err) {
+                                reject('image_picker_failed');
+                            }
+                        }
+                    },
+                    {
+                        text: 'Publicar sin imagen',
+                        style: 'destructive',
+                        onPress: () => resolve(true)
+                    }
+                ],
+                { cancelable: false }
+            );
+        });
+    };
+
     const handleSubmit = async () => {
         if (!title.trim()) {
             Alert.alert('Error', 'El título es requerido');
@@ -50,34 +100,57 @@ export default function CreateNews() {
         }
 
         try {
+            // Validate image before publishing
+            await checkImageBeforePublish();
+
             setLoading(true);
+
+            console.log('📝 [CreateNews] Submitting new news...');
+            console.log('📝 [CreateNews] Form data:', { title, summary, content, category, isPublished, hasImage: !!image });
 
             const formData = new FormData();
             formData.append('title', title);
             formData.append('summary', summary);
             formData.append('content', content);
             formData.append('category', category);
-            formData.append('isPublished', isPublished);
+            // Convert boolean to string for FormData
+            formData.append('isPublished', String(isPublished));
 
             if (image) {
                 const filename = image.split('/').pop();
+                // Fix regex: properly match file extension
                 const match = /\.(\w+)$/.exec(filename);
-                const type = match ? `image/${match[1]}` : 'image/jpeg';
-                formData.append('image', {
+                const extension = match ? match[1] : 'jpg';
+                const type = `image/${extension}`;
+
+                console.log('📝 [CreateNews] Image details:');
+                console.log('  - Full URI:', image);
+                console.log('  - Filename:', filename);
+                console.log('  - Extension:', extension);
+                console.log('  - MIME type:', type);
+
+                const imageFile = {
                     uri: image,
                     name: filename,
-                    type,
-                });
+                    type: type,
+                };
+
+                console.log('📝 [CreateNews] Image object:', JSON.stringify(imageFile, null, 2));
+                formData.append('image', imageFile);
+                console.log('📝 [CreateNews] ✅ Image appended to FormData as field "image"');
+            } else {
+                console.log('📝 [CreateNews] ⚠️ No image selected');
             }
 
             await newsService.createNews(formData);
+            console.log('✅ [CreateNews] Creation successful');
             Alert.alert(
                 '✅ Noticia Creada',
                 isPublished ? 'La noticia ha sido publicada.' : 'La noticia ha sido guardada como borrador.',
                 [{ text: 'OK', onPress: () => router.back() }]
             );
         } catch (err) {
-            console.error('Error creating news:', err);
+            console.error('❌ [CreateNews] Error creating news:', err);
             Alert.alert('Error', err.message || 'No se pudo crear la noticia');
         } finally {
             setLoading(false);

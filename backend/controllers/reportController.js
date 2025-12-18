@@ -1,33 +1,10 @@
 const Report = require('../models/Report');
 const User = require('../models/User');
+const { getPhotoUrl } = require('../utils/helpers');
 
 // Constants
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
-
-// Helper function to convert photo path to full URL
-const getPhotoUrl = (photoPath) => {
-    if (!photoPath) return null;
-
-    // If already a full URL, return as is
-    if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
-        return photoPath;
-    }
-
-    // Normalize path separators (Windows \ to /)
-    const normalizedPath = photoPath.replace(/\\/g, '/');
-
-    // Remove leading slash if present to avoid double slashes
-    const cleanPath = normalizedPath.startsWith('/')
-        ? normalizedPath.substring(1)
-        : normalizedPath;
-
-    // Get base URL from environment or use localhost as fallback
-    const baseUrl = process.env.API_URL || 'http://localhost:5000';
-
-    // Construct full URL
-    return `${baseUrl}/${cleanPath}`;
-};
 
 // Helper function to transform a report object with all necessary data
 const transformReport = (report) => {
@@ -97,7 +74,6 @@ const createReport = async (req, res, next) => {
             data: report
         });
     } catch (error) {
-        console.error('❌ Error creating report:', error);
         next(error);
     }
 };
@@ -192,7 +168,6 @@ const getRecentReports = async (req, res, next) => {
             data: transformedReports
         });
     } catch (error) {
-        console.error('❌ Error getting recent reports:', error);
         next(error);
     }
 };
@@ -239,7 +214,6 @@ const getFinishedReports = async (req, res, next) => {
             }
         });
     } catch (error) {
-        console.error('❌ Error getting finished reports:', error);
         next(error);
     }
 };
@@ -253,20 +227,16 @@ const getReportById = async (req, res, next) => {
 
         // Validate ObjectId format
         if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
-            console.error('❌ Invalid ObjectId format:', id);
             return res.status(400).json({
                 success: false,
                 message: 'ID de reporte inválido'
             });
         }
 
-        console.log('🔍 Fetching report with ID:', id);
-
         const report = await Report.findById(id)
             .populate('reportedBy', 'name email phone profileImage lastActive');
 
         if (!report) {
-            console.error('❌ Report not found with ID:', id);
             return res.status(404).json({
                 success: false,
                 message: 'Reporte no encontrado'
@@ -285,8 +255,6 @@ const getReportById = async (req, res, next) => {
             await report.save();
         }
 
-        console.log('✅ Report found:', report.name);
-
         // Transform report with full URLs and activity status
         const transformedReport = transformReport(report);
 
@@ -295,7 +263,6 @@ const getReportById = async (req, res, next) => {
             data: transformedReport
         });
     } catch (error) {
-        console.error('❌ Error in getReportById:', error);
         next(error);
     }
 };

@@ -1,17 +1,7 @@
 const User = require('../models/User');
 const { generateToken } = require('../middleware/auth');
+const { getPhotoUrl } = require('../utils/helpers');
 
-// Helper function to convert photo path to full URL
-const getPhotoUrl = (photoPath) => {
-    if (!photoPath) return null;
-    if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
-        return photoPath;
-    }
-    const normalizedPath = photoPath.replace(/\\/g, '/');
-    const cleanPath = normalizedPath.startsWith('/') ? normalizedPath.substring(1) : normalizedPath;
-    const baseUrl = process.env.API_URL || 'http://localhost:5000';
-    return `${baseUrl}/${cleanPath}`;
-};
 
 // @desc    Register a new user
 // @route   POST /api/auth/register

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import AdminHeader from '../../../components/admin/AdminHeader';
@@ -8,8 +8,7 @@ import SkeletonCard from '../../../components/shared/SkeletonCard';
 import { theme } from '../../../constants/theme';
 import { useAuth } from '../../../context/AuthContext';
 import newsService from '../../../services/newsService';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+import { resolveAssetUrl } from '../../../utils/assetUrl';
 
 export default function AdminNewsList() {
     const { user, isAuthenticated } = useAuth();
@@ -21,10 +20,18 @@ export default function AdminNewsList() {
     const loadNews = useCallback(async () => {
         try {
             setError(null);
+            console.log('📰 [AdminNews] Loading news...');
             const response = await newsService.getAllNews({ limit: 50 });
+            console.log('📰 [AdminNews] Response structure:', {
+                response,
+                hasData: !!response.data,
+                dataIsArray: Array.isArray(response.data),
+                dataLength: response.data?.length,
+            });
             setNews(response.data || []);
+            console.log('📰 [AdminNews] News set to state:', response.data?.length || 0, 'items');
         } catch (err) {
-            console.error('Error loading news:', err);
+            console.error('❌ [AdminNews] Error loading news:', err);
             setError(err.message || 'Error al cargar noticias');
         } finally {
             setLoading(false);
@@ -37,6 +44,16 @@ export default function AdminNewsList() {
             loadNews();
         }
     }, [isAuthenticated, user, loadNews]);
+
+    // Auto-reload when screen comes into focus (e.g., after creating a news)
+    useFocusEffect(
+        useCallback(() => {
+            if (isAuthenticated && user?.role === 'admin') {
+                console.log('📰 [AdminNews] Screen focused, reloading news...');
+                loadNews();
+            }
+        }, [isAuthenticated, user, loadNews])
+    );
 
     const handleRefresh = () => {
         setRefreshing(true);
@@ -86,11 +103,7 @@ export default function AdminNewsList() {
         });
     };
 
-    const getImageUrl = (imagePath) => {
-        if (!imagePath) return null;
-        if (imagePath.startsWith('http')) return imagePath;
-        return `${API_URL}/${imagePath.replace(/\\/g, '/')}`;
-    };
+
 
     if (loading) {
         return (
@@ -192,7 +205,7 @@ export default function AdminNewsList() {
                                 {/* Image */}
                                 {item.image && (
                                     <Image
-                                        source={{ uri: getImageUrl(item.image) }}
+                                        source={{ uri: resolveAssetUrl(item.image) }}
                                         style={{ width: '100%', height: 150 }}
                                         resizeMode="cover"
                                     />
@@ -203,34 +216,32 @@ export default function AdminNewsList() {
                                     onPress={() => router.push(`/admin/news/${item._id}`)}
                                     className="p-4"
                                 >
-                                    {/* Status Badge */}
-                                    <View className="flex-row items-center mb-2">
-                                        <View
-                                            className="px-2 py-1 rounded-full"
-                                            style={{
-                                                backgroundColor: item.isPublished
-                                                    ? theme.colors.success.light
-                                                    : theme.colors.gray[200]
-                                            }}
-                                        >
-                                            <Text
-                                                className="text-[10px] font-bold uppercase"
-                                                style={{
-                                                    color: item.isPublished
-                                                        ? theme.colors.success.main
-                                                        : theme.colors.gray[600]
-                                                }}
-                                            >
+                                    {/* Status Badges */}
+                                    <View style={{ flexDirection: 'row', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                                        {/* Published Status Badge */}
+                                        <View style={{
+                                            backgroundColor: item.isPublished ? '#10B981' : '#6B7280',
+                                            paddingHorizontal: 8,
+                                            paddingVertical: 4,
+                                            borderRadius: 4,
+                                        }}>
+                                            <Text style={{ color: 'white', fontSize: 12 }}>
                                                 {item.isPublished ? 'Publicado' : 'Borrador'}
                                             </Text>
                                         </View>
-                                        {item.category && (
-                                            <Text
-                                                className="text-[11px] ml-2 uppercase font-medium"
-                                                style={{ color: theme.colors.gray[500] }}
-                                            >
-                                                {item.category}
-                                            </Text>
+
+                                        {/* Image Status Badge */}
+                                        {!item.image && (
+                                            <View style={{
+                                                backgroundColor: '#F59E0B',
+                                                paddingHorizontal: 8,
+                                                paddingVertical: 4,
+                                                borderRadius: 4,
+                                            }}>
+                                                <Text style={{ color: 'white', fontSize: 12 }}>
+                                                    ⚠️ Sin imagen
+                                                </Text>
+                                            </View>
                                         )}
                                     </View>
 

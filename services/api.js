@@ -8,10 +8,19 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/a
 // Crear instancia de axios
 const api = axios.create({
     baseURL: API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
     timeout: 10000, // 10 segundos
+    // IMPORTANTE: No set default Content-Type - dejarlo undefined para FormData
+    transformRequest: [(data, headers) => {
+        // Si es FormData, NO hacer nada - dejar que axios lo maneje
+        if (data instanceof FormData) {
+            // NO setear Content-Type - axios lo hará automáticamente con boundary
+            delete headers['Content-Type'];
+            return data;
+        }
+        // Para requests normales (JSON), setear Content-Type
+        headers['Content-Type'] = 'application/json';
+        return JSON.stringify(data);
+    }],
 });
 
 // Interceptor para agregar el token a todas las peticiones

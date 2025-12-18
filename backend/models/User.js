@@ -112,12 +112,15 @@ userSchema.statics.getActivityStatus = function (lastActive) {
     const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    console.log('📊 Activity Status Calculation:', {
-        now: now.toISOString(),
-        lastActive: lastActiveDate.toISOString(),
-        diffMinutes,
-        thresholdOnline: ACTIVITY_THRESHOLDS.ONLINE
-    });
+    // Only log in development for debugging
+    if (process.env.NODE_ENV === 'development') {
+        console.log('📊 Activity Status Calculation:', {
+            now: now.toISOString(),
+            lastActive: lastActiveDate.toISOString(),
+            diffMinutes,
+            thresholdOnline: ACTIVITY_THRESHOLDS.ONLINE
+        });
+    }
 
     // Online now (within 5 minutes)
     if (diffMinutes < ACTIVITY_THRESHOLDS.ONLINE) {
