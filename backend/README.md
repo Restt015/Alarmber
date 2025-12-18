@@ -49,33 +49,90 @@ backend/
 └── server.js        # Punto de entrada
 ```
 
-## 🔧 Instalación
+## 🔧 Instalación y Configuración
 
-1. **Navegar al directorio backend:**
-   ```bash
-   cd backend
-   ```
+### 1. Instalar Dependencias
 
-2. **Instalar dependencias:**
-   ```bash
-   npm install
-   ```
+```bash
+cd backend
+npm install
+```
 
-3. **Configurar variables de entorno:**
-   ```bash
-   cp .env.example .env
-   ```
+### 2. Configurar Variables de Entorno
 
-4. **Editar el archivo `.env` con tus configuraciones:**
-   ```env
-   PORT=5000
-   NODE_ENV=development
-   MONGODB_URI=mongodb://localhost:27017/amber
-   JWT_SECRET=tu_clave_secreta_aqui
-   JWT_EXPIRE=7d
-   MAX_FILE_SIZE=5242880
-   UPLOAD_PATH=./uploads
+```bash
+cp .env.example .env
+```
+
+### 3. Configurar MongoDB Atlas (Recomendado para Producción)
+
+#### Crear Cluster en MongoDB Atlas:
+
+1. Ve a [MongoDB Atlas](https://cloud.mongodb.com)
+2. Crea una cuenta (gratuita) o inicia sesión
+3. Crea un nuevo cluster (tier M0 es gratuito)
+4. Espera a que el cluster se inicialice (~5 minutos)
+
+#### Configurar Database Access:
+
+1. **Database Access** → **+ ADD NEW DATABASE USER**
+2. Configura:
+   - Username: `alarmber-admin` (o el nombre que prefieras)
+   - Password: Genera una contraseña segura (sin caracteres especiales para evitar problemas)
+   - Database User Privileges: **"Read and write to any database"**
+3. Click **"Add User"**
+
+#### Configurar Network Access:
+
+1. **Network Access** → **+ ADD IP ADDRESS**
+2. Para desarrollo: Click **"ALLOW ACCESS FROM ANYWHERE"** (0.0.0.0/0)
+   - ⚠️ Para producción: Especifica IPs específicas de tu servidor
+3. Click **"Confirm"**
+
+#### Obtener Connection String:
+
+1. **Clusters** → **Connect** (botón en tu cluster)
+2. Selecciona **"Connect your application"**
+3. Driver: **Node.js**, Version: **5.5 or later**
+4. Copia el connection string:
    ```
+   mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
+   ```
+5. Modifica el string:
+   - Reemplaza `<username>` con tu usuario
+   - Reemplaza `<password>` con tu contraseña
+   - Agrega `/alarmber` antes del `?` para especificar la base de datos
+
+Ejemplo final:
+```
+mongodb+srv://alarmber-admin:MyPass123@alarmber.abc123.mongodb.net/alarmber?retryWrites=true&w=majority
+```
+
+### 4. Configurar archivo `.env`
+
+**Mínima configuración requerida:**
+
+```env
+# MongoDB Atlas Connection
+MONGODB_URI=mongodb+srv://alarmber-admin:YOUR_PASSWORD@alarmber.xxxxx.mongodb.net/alarmber?retryWrites=true&w=majority
+
+# JWT Secret (genera uno seguro)
+JWT_SECRET=<generar con comando abajo>
+
+# Server
+PORT=5000
+NODE_ENV=development
+```
+
+**Generar JWT_SECRET seguro:**
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+
+> ⚠️ **IMPORTANTE:** Si tu password contiene caracteres especiales (#, @, %, etc.), debes URL-encodearlos:
+> - `#` → `%23`
+> - `@` → `%40`
+> - `%` → `%25`
 
 ## 🏃‍♂️ Ejecutar el Servidor
 
@@ -89,7 +146,44 @@ npm run dev
 npm start
 ```
 
-El servidor estará disponible en `http://localhost:5000`
+### ✅ Conexión Exitosa
+
+Si todo está configurado correctamente, verás:
+
+```
+[timestamp] INFO: 🔍 Validating environment variables...
+[timestamp] INFO: ✅ Environment variables validated
+[timestamp] INFO: 🔌 Connecting to MongoDB...
+[timestamp] INFO: ✅ MongoDB Connected Successfully
+[timestamp] INFO: 📡 Host: alarmber.xxxxx.mongodb.net
+[timestamp] INFO: 📊 Database: alarmber
+[timestamp] INFO: 🌿 Mongoose v9.0.1
+[timestamp] INFO: ═══════════════════════════════════════
+[timestamp] INFO: 🚀 Server running successfully
+[timestamp] INFO: 📍 Environment: development
+[timestamp] INFO: 📡 HTTP Server: http://localhost:5000
+[timestamp] INFO: 📱 Mobile access: http://192.168.0.3:5000
+[timestamp] INFO: 🔌 WebSocket: ws://localhost:5001
+[timestamp] INFO: ═══════════════════════════════════════
+```
+
+### ❌ Errores Comunes
+
+**"MONGODB_URI is not defined"**
+- Verifica que tu archivo `.env` existe y contiene `MONGODB_URI`
+- Asegúrate de estar en el directorio `backend/`
+
+**"bad auth: authentication failed"**
+- Verifica username y password en el connection string
+- Si la password tiene caracteres especiales, URL-encódealos
+
+**"IP not whitelisted"**
+- Ve a MongoDB Atlas → Network Access
+- Agrega tu IP actual o permite 0.0.0.0/0 para desarrollo
+
+**"Invalid scheme"**
+- Verifica que el connection string empiece con `mongodb+srv://`
+- No uses comillas alrededor de la URI en `.env`
 
 ## 📡 API Endpoints
 
