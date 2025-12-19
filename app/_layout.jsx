@@ -10,7 +10,9 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '../components/useColorScheme';
 import { AuthProvider } from '../context/AuthContext';
+import { NotificationProvider } from '../context/NotificationContext';
 import '../global.css';
+import usePushNotifications from '../hooks/usePushNotifications';
 import '../nativewind-paper';
 
 export {
@@ -65,81 +67,87 @@ const paperTheme = {
   },
 };
 
-// Component that uses push notifications hook (must be inside NotificationProvider)
-// Removed notification logic
-
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
     <AuthProvider>
-      <PaperProvider theme={paperTheme}>
-        <ThemeProvider value={DefaultTheme}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: '#F5F5F5' },
-            }}
-          >
-            {/* Main screens - disable back gesture to prevent returning to auth */}
-            <Stack.Screen
-              name="(tabs)"
-              options={{
+      <NotificationProvider>
+        <PaperProvider theme={paperTheme}>
+          <ThemeProvider value={DefaultTheme}>
+            <NotificationInit />
+            <Stack
+              screenOptions={{
                 headerShown: false,
-                gestureEnabled: false, // Prevent swipe back to login/welcome
+                contentStyle: { backgroundColor: '#F5F5F5' },
               }}
-            />
+            >
+              {/* Main screens - disable back gesture to prevent returning to auth */}
+              <Stack.Screen
+                name="(tabs)"
+                options={{
+                  headerShown: false,
+                  gestureEnabled: false, // Prevent swipe back to login/welcome
+                }}
+              />
 
-            {/* Admin - NO swipe back to login */}
-            <Stack.Screen
-              name="admin"
-              options={{
-                headerShown: false,
-                gestureEnabled: false, // Prevent swipe back to login/welcome
-              }}
-            />
+              {/* Admin - NO swipe back to login */}
+              <Stack.Screen
+                name="admin"
+                options={{
+                  headerShown: false,
+                  gestureEnabled: false, // Prevent swipe back to login/welcome
+                }}
+              />
 
-            {/* Moderator - NO swipe back to login */}
-            <Stack.Screen
-              name="(mod)"
-              options={{
-                headerShown: false,
-                gestureEnabled: false, // Prevent swipe back to login/welcome
-              }}
-            />
+              {/* Moderator - NO swipe back to login */}
+              <Stack.Screen
+                name="(mod)"
+                options={{
+                  headerShown: false,
+                  gestureEnabled: false, // Prevent swipe back to login/welcome
+                }}
+              />
 
-            {/* Auth screens - disable back gesture between them */}
-            <Stack.Screen
-              name="index"
-              options={{
-                headerShown: false,
-                gestureEnabled: false, // Welcome screen - no back
-              }}
-            />
-            <Stack.Screen
-              name="auth/login"
-              options={{
-                headerShown: false,
-                gestureEnabled: true, // Allow back to welcome
-              }}
-            />
-            <Stack.Screen
-              name="auth/register"
-              options={{
-                headerShown: false,
-                gestureEnabled: true, // Allow back to login/welcome
-              }}
-            />
+              {/* Auth screens - disable back gesture between them */}
+              <Stack.Screen
+                name="index"
+                options={{
+                  headerShown: false,
+                  gestureEnabled: false, // Welcome screen - no back
+                }}
+              />
+              <Stack.Screen
+                name="auth/login"
+                options={{
+                  headerShown: false,
+                  gestureEnabled: true, // Allow back to welcome
+                }}
+              />
+              <Stack.Screen
+                name="auth/register"
+                options={{
+                  headerShown: false,
+                  gestureEnabled: true, // Allow back to login/welcome
+                }}
+              />
 
-            {/* Other screens */}
-            <Stack.Screen name="report/create" options={{ headerShown: false }} />
-            <Stack.Screen name="report/success" options={{ headerShown: false, gestureEnabled: false }} />
-            <Stack.Screen name="news/index" options={{ headerShown: false }} />
-            <Stack.Screen name="alert/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </ThemeProvider>
-      </PaperProvider>
+              {/* Other screens */}
+              <Stack.Screen name="report/create" options={{ headerShown: false }} />
+              <Stack.Screen name="report/success" options={{ headerShown: false, gestureEnabled: false }} />
+              <Stack.Screen name="news/index" options={{ headerShown: false }} />
+              <Stack.Screen name="alert/[id]" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+          </ThemeProvider>
+        </PaperProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
+}
+
+// Child component to use the hook inside providers
+function NotificationInit() {
+  usePushNotifications();
+  return null;
 }

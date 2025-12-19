@@ -6,7 +6,8 @@ const {
     changePassword,
     getUserById,
     updateRole,
-    updateStatus
+    updateStatus,
+    registerPushToken
 } = require('../controllers/userController');
 const { protect, admin } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -18,6 +19,7 @@ router.use(protect);
 router.get('/profile', getProfile);
 router.put('/profile', upload.single('profileImage'), updateProfile);
 router.put('/change-password', changePassword);
+router.post('/push-token', registerPushToken);
 
 // Admin only routes
 router.get('/:id', admin, getUserById);

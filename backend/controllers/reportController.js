@@ -1,6 +1,8 @@
 const Report = require('../models/Report');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { getPhotoUrl } = require('../utils/helpers');
+const { sendPushNotification } = require('../services/pushService');
 
 // Constants
 const DEFAULT_PAGE_SIZE = 10;
@@ -375,6 +377,34 @@ const updateReportStatus = async (req, res, next) => {
 
         report.status = status;
         await report.save();
+
+        // Notify user about status change if it wasn't the user themselves (rare case for admins)
+        if (report.reportedBy && report.reportedBy.toString() !== req.user._id.toString()) {
+            const notificationTitle = 'Actualización de Reporte';
+            const notificationMessage = `El estado de tu reporte ha cambiado a: ${status}`;
+
+            // 1. Create Notification in DB (Persistence)
+            await Notification.create({
+                userId: report.reportedBy,
+                reportId: report._id,
+                type: 'status_update',
+                title: notificationTitle,
+                message: notificationMessage,
+                priority: 'normal',
+                data: {
+                    reportId: report._id,
+                    newStatus: status
+                }
+            });
+
+            // 2. Send Push Notification
+            sendPushNotification(
+                [report.reportedBy],
+                notificationTitle,
+                notificationMessage,
+                { type: 'status_update', reportId: report._id, newStatus: status }
+            );
+        }
 
         res.json({
             success: true,

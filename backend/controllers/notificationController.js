@@ -9,6 +9,12 @@ const getNotifications = async (req, res, next) => {
         const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
 
+        console.log('[NOTIFICATION DEBUG] GET /notifications request:', {
+            requestingUserId: req.user._id.toString(),
+            page,
+            limit
+        });
+
         const [notifications, total] = await Promise.all([
             Notification.find({ userId: req.user._id })
                 .populate('reportId', 'name photo status')
@@ -17,6 +23,13 @@ const getNotifications = async (req, res, next) => {
                 .limit(limit),
             Notification.countDocuments({ userId: req.user._id })
         ]);
+
+        console.log('[NOTIFICATION DEBUG] GET /notifications result:', {
+            requestingUserId: req.user._id.toString(),
+            notificationsFound: notifications.length,
+            total,
+            firstNotificationId: notifications[0]?._id
+        });
 
         res.json({
             success: true,

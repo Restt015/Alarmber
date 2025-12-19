@@ -1,19 +1,24 @@
-// app/(tabs)/_layout.jsx
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, router } from "expo-router";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
+import { useNotifications } from "../../context/NotificationContext";
 
 // Tab icon with optional badge
-function TabIconWithBadge({ name, color }) {
+function TabIconWithBadge({ name, color, badgeCount }) {
   return (
     <View style={{ width: 28, height: 28 }}>
       <Ionicons name={name} size={22} color={color} />
+      {badgeCount > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{badgeCount > 99 ? '99+' : badgeCount}</Text>
+        </View>
+      )}
     </View>
   );
 }
 
 export default function TabLayout() {
-  // const { unreadCount } = useNotifications(); // Removed
+  const { unreadCount = 0 } = useNotifications() || {};
 
   return (
     <Tabs
@@ -95,13 +100,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="resource"
         options={{
-          title: "Recursos",
+          title: "Contactos",
           tabBarIcon: ({ color }) => (
-            <Ionicons
-              name="information-circle-outline"
-              size={22}
-              color={color}
-            />
+            <Ionicons name="call-outline" size={22} color={color} />
           ),
         }}
       />
@@ -116,18 +117,18 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Hidden screens - not in tab bar */}
+      {/* Hidden screens */}
       <Tabs.Screen
-        name="my-reports"
+        name="notifications"
         options={{
-          href: null, // Hide from tab bar
+          href: null, // Hidden (moved to header dropdown)
         }}
       />
 
       <Tabs.Screen
-        name="notifications"
+        name="my-reports"
         options={{
-          href: null, // Hide from tab bar
+          href: null,
         }}
       />
     </Tabs>

@@ -5,8 +5,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { useNotifications } from '../context/NotificationContext';
-import notificationService from '../services/notificationService';
+import api from '../services/api';
 
 // Configure notification handler for foreground
 Notifications.setNotificationHandler({
@@ -18,68 +17,62 @@ Notifications.setNotificationHandler({
 });
 
 export default function usePushNotifications() {
-    const { isAuthenticated, user } = useAuth();
-    const { addNotification, fetchUnreadCount } = useNotifications();
+    const { isAuthenticated } = useAuth();
     const [expoPushToken, setExpoPushToken] = useState(null);
-    const [notification, setNotification] = useState(null);
     const notificationListener = useRef();
     const responseListener = useRef();
 
     useEffect(() => {
-        // Register for push notifications when authenticated
-        if (isAuthenticated) {
-            registerForPushNotifications();
-        }
+        let isMounted = true;
+
+        const registerAndListen = async () => {
+            if (isAuthenticated) {
+                const token = await registerForPushNotifications();
+                if (isMounted) setExpoPushToken(token);
+            }
+        };
+
+        registerAndListen();
 
         // Listen for incoming notifications (foreground)
         notificationListener.current = Notifications.addNotificationReceivedListener(
             (notification) => {
                 console.log('📬 Notification received in foreground:', notification);
-                setNotification(notification);
-
-                // Add to local state and refresh count
-                const data = notification.request.content.data;
-                if (data) {
-                    addNotification({
-                        _id: data.notificationId,
-                        type: data.type,
-                        title: notification.request.content.title,
-                        message: notification.request.content.body,
-                        reportId: data.reportId ? { _id: data.reportId } : null,
-                        isRead: false,
-                        createdAt: new Date().toISOString()
-                    });
-                }
+                // Do nothing - let OS handle it
+                // Notification Center will refresh when user navigates to it
             }
         );
 
-        // Listen for notification taps (background/killed)
+        // Listen for notification taps (background/killed -> open app)
         responseListener.current = Notifications.addNotificationResponseReceivedListener(
             (response) => {
                 console.log('👆 Notification tapped:', response);
-                handleNotificationTap(response.notification);
+                const notification = response.notification;
+                handleNotificationTap(notification);
             }
         );
 
         return () => {
-            notificationListener.current && notificationListener.current.remove();
-            responseListener.current && responseListener.current.remove();
+            isMounted = false;
+            if (notificationListener.current) {
+                notificationListener.current.remove();
+            }
+            if (responseListener.current) {
+                responseListener.current.remove();
+            }
         };
     }, [isAuthenticated]);
 
     const registerForPushNotifications = async () => {
         try {
-            // Check if it's a physical device
             if (!Device.isDevice) {
                 console.log('⚠️ Push notifications require a physical device');
                 return null;
             }
 
-            // Check existing permissions
             const { status: existingStatus } = await Notifications.getPermissionsAsync();
             let finalStatus = existingStatus;
 
-            // Request permission if not granted
             if (existingStatus !== 'granted') {
                 const { status } = await Notifications.requestPermissionsAsync();
                 finalStatus = status;
@@ -90,35 +83,32 @@ export default function usePushNotifications() {
                 return null;
             }
 
-            // Get project ID from Constants or environment
+            // Get project ID
             const projectId = Constants.expoConfig?.extra?.eas?.projectId
                 || Constants.easConfig?.projectId
                 || process.env.EXPO_PUBLIC_PROJECT_ID;
 
-            // If no projectId, push notifications won't work in bare workflow
-            // but in-app notifications will still work
             if (!projectId) {
-                console.log('⚠️ No Expo projectId found - Push notifications disabled');
-                console.log('   In-app notifications will still work normally');
+                console.log('⚠️ No Expo projectId found');
                 return null;
             }
 
-            // Get Expo push token
             const tokenData = await Notifications.getExpoPushTokenAsync({
                 projectId
             });
 
             const token = tokenData.data;
             console.log('📱 Expo push token:', token);
-            setExpoPushToken(token);
 
             // Send token to backend
             if (token) {
-                await notificationService.updatePushToken(token);
+                await api.post('/users/push-token', {
+                    token: token,
+                    platform: Platform.OS
+                });
                 console.log('✅ Push token saved to backend');
             }
 
-            // Configure Android notification channel
             if (Platform.OS === 'android') {
                 await Notifications.setNotificationChannelAsync('default', {
                     name: 'default',
@@ -130,36 +120,27 @@ export default function usePushNotifications() {
 
             return token;
         } catch (error) {
-            console.log('⚠️ Push notifications not available:', error.message);
-            console.log('   In-app notifications will still work normally');
+            console.log('⚠️ Error registering for push notifications:', error);
             return null;
         }
     };
 
     const handleNotificationTap = (notification) => {
         const data = notification.request.content.data;
+        console.log('🎯 Handling notification tap with data:', data);
 
         // Navigate to report detail if reportId is present
         if (data?.reportId) {
-            router.push(`/alert/${data.reportId}`);
+            const reportId = typeof data.reportId === 'object' ? data.reportId._id : data.reportId;
+            router.push(`/alert/${reportId}`);
         } else {
-            // Navigate to notifications tab
             router.push('/(tabs)/notifications');
         }
 
-        // Refresh unread count
-        fetchUnreadCount();
-    };
-
-    // Clear the current notification after it's been displayed
-    const clearNotification = () => {
-        setNotification(null);
+        // Do NOT sync data - let the screen handle its own data fetching
     };
 
     return {
-        expoPushToken,
-        notification,
-        clearNotification,
-        registerForPushNotifications
+        expoPushToken
     };
 }

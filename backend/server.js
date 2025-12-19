@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -12,6 +13,7 @@ const reportRoutes = require('./routes/reports');
 const alertRoutes = require('./routes/alerts');
 const newsRoutes = require('./routes/news');
 const userRoutes = require('./routes/users');
+const notificationRoutes = require('./routes/notifications');
 
 /**
  * Validate required environment variables before starting
@@ -110,6 +112,7 @@ const initializeApp = () => {
     app.use('/api', require('./routes/messages')); // Messages routes (mounted at /api to support full path)
     app.use('/api/alerts', alertRoutes);
     app.use('/api/news', newsRoutes);
+    app.use('/api/notifications', notificationRoutes);
     app.use('/api/admin', require('./routes/admin'));
     app.use('/api/moderation', require('./routes/moderation'));
     app.use('/api/mod/inbox', require('./routes/modInbox'));
@@ -177,4 +180,3 @@ process.on('unhandledRejection', (err) => {
 
 // Start the server
 startServer();
-

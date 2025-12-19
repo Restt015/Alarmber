@@ -20,6 +20,9 @@ const notificationSchema = new mongoose.Schema({
     type: {
         type: String,
         enum: [
+            'status_update',      // Report status changed
+            'new_message',        // New message from mod/admin
+            'report_validated',   // Report approved by admin
             'accepted',
             'review',
             'rejected',

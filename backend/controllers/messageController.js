@@ -1,6 +1,8 @@
 const Message = require('../models/Message');
 const Report = require('../models/Report');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
+const { sendPushNotification } = require('../services/pushService');
 
 // @desc    Get messages for a report
 // @route   GET /api/reports/:reportId/messages
@@ -74,6 +76,13 @@ exports.createMessage = async (req, res, next) => {
         const { reportId } = req.params;
         const { content, type = 'text', metadata = {} } = req.body;
 
+        console.log('[NOTIFICATION DEBUG] 🚀 createMessage CALLED:', {
+            reportId,
+            senderId: req.user._id.toString(),
+            senderRole: req.user.role,
+            contentPreview: content?.substring(0, 30)
+        });
+
         // Verify report exists
         const report = await Report.findById(reportId);
         if (!report) {
@@ -128,6 +137,53 @@ exports.createMessage = async (req, res, next) => {
 
         // Populate sender info for immediate return
         await message.populate('sender', 'name profileImage');
+
+        // Notify user if sender is moderator/admin
+        console.log('[NOTIFICATION DEBUG] Checking notification conditions:', {
+            isModerator,
+            hasReportedBy: !!report.reportedBy,
+            reportedById: report.reportedBy?.toString(),
+            senderId: req.user._id.toString(),
+            willNotify: isModerator && report.reportedBy && report.reportedBy.toString() !== req.user._id.toString()
+        });
+
+        if (isModerator && report.reportedBy && report.reportedBy.toString() !== req.user._id.toString()) {
+            const notificationTitle = 'Nuevo mensaje en tu reporte';
+            const notificationMessage = `Un moderador ha respondido a tu reporte: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`;
+
+            try {
+                // 1. Create Notification in DB (Persistence)
+                const notification = await Notification.create({
+                    userId: report.reportedBy,
+                    reportId: report._id,
+                    type: 'new_message',
+                    title: notificationTitle,
+                    message: notificationMessage,
+                    priority: 'high',
+                    data: {
+                        reportId: report._id,
+                        messageId: message._id
+                    }
+                });
+
+                console.log('[NOTIFICATION DEBUG] ✅ Notification CREATED:', {
+                    notificationId: notification._id,
+                    recipientUserId: notification.userId,
+                    type: notification.type,
+                    reportId: notification.reportId
+                });
+
+                // 2. Send Push Notification
+                sendPushNotification(
+                    [report.reportedBy],
+                    notificationTitle,
+                    notificationMessage,
+                    { type: 'new_message', reportId: report._id }
+                );
+            } catch (notifError) {
+                console.error('[NOTIFICATION DEBUG] ❌ Notification creation FAILED:', notifError.message);
+            }
+        }
 
         res.status(201).json({
             success: true,

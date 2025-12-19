@@ -214,6 +214,49 @@ class WebSocketService {
                 action: 'message:new',
                 data: savedMessage
             });
+
+            // 10. NOTIFICATION LOGIC (Added for Inbox/Push)
+            try {
+                // Only notify if sender is MOD/ADMIN and recipient is NOT the sender
+                const isModerator = ['moderator', 'admin'].includes(user.role);
+                const recipientId = report.reportedBy; // The owner of the report
+
+                // Ensure we don't notify the sender (if admin is owner for some reason)
+                if (isModerator && recipientId && recipientId.toString() !== user._id.toString()) {
+
+                    const Notification = require('../models/Notification');
+                    const { sendPushNotification } = require('../services/pushService');
+
+                    const notifTitle = 'Nuevo mensaje en tu reporte';
+                    const notifMessage = `Un moderador ha respondido: "${content.substring(0, 40)}${content.length > 40 ? '...' : ''}"`;
+
+                    // A. Create Notification in DB
+                    const notification = await Notification.create({
+                        userId: recipientId,
+                        reportId: report._id,
+                        type: 'new_message',
+                        title: notifTitle,
+                        message: notifMessage,
+                        priority: 'high',
+                        data: {
+                            reportId: report._id,
+                            messageId: savedMessage._id
+                        }
+                    });
+
+                    console.log(`[WS NOTIFICATION] ✅ Created notification ${notification._id} for user ${recipientId}`);
+
+                    // B. Send Push Notification
+                    await sendPushNotification(
+                        [recipientId],
+                        notifTitle,
+                        notifMessage,
+                        { type: 'new_message', reportId: report._id }
+                    );
+                }
+            } catch (notifError) {
+                console.error('[WS NOTIFICATION ERROR]', notifError);
+            }
         }
 
         if (message.action === 'ping') {

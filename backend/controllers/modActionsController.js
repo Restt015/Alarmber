@@ -1,9 +1,10 @@
 const User = require('../models/User');
 const Message = require('../models/Message');
 const Notification = require('../models/Notification');
-const ModNotification = require('../models/ModNotification'); // Added ModNotification
+const ModNotification = require('../models/ModNotification');
 const ModerationLog = require('../models/ModerationLog');
 const Report = require('../models/Report');
+const { sendPushNotification } = require('../services/pushService');
 
 // Helper to resolve notification linked to action
 const resolveRelatedNotification = async (notificationId, moderatorId, note) => {
@@ -67,10 +68,12 @@ exports.warnUser = async (req, res, next) => {
         }
 
         // Create user notification
+        const notificationTitle = '⚠️ Advertencia de Moderación';
         await Notification.create({
             userId,
+            reportId,
             type: 'moderation_warning',
-            title: '⚠️ Advertencia de Moderación',
+            title: notificationTitle,
             message: warningMessage,
             priority: 'high',
             data: {
@@ -79,6 +82,14 @@ exports.warnUser = async (req, res, next) => {
                 template: warningTemplate
             }
         });
+
+        // Send Push Notification
+        sendPushNotification(
+            [userId],
+            notificationTitle,
+            warningMessage,
+            { type: 'moderation_warning', reportId: reportId }
+        );
 
         // Auto-resolve notification if provided
         await resolveRelatedNotification(
@@ -133,10 +144,12 @@ exports.muteUser = async (req, res, next) => {
                 ? `${Math.round(durationSeconds / 3600)} hora(s)`
                 : `${Math.round(durationSeconds / 60)} minuto(s)`;
 
+        const notificationTitle = '🔇 Chat Silenciado';
         await Notification.create({
             userId,
+            reportId,
             type: 'moderation_mute',
-            title: '🔇 Chat Silenciado',
+            title: notificationTitle,
             message: `No podrás enviar mensajes durante ${durationText}. Motivo: ${chatMuteReason}`,
             priority: 'high',
             data: {
@@ -146,6 +159,14 @@ exports.muteUser = async (req, res, next) => {
                 durationSeconds
             }
         });
+
+        // Send Push Notification
+        sendPushNotification(
+            [userId],
+            notificationTitle,
+            `No podrás enviar mensajes durante ${durationText}.`,
+            { type: 'moderation_mute', reportId: reportId }
+        );
 
 
 
@@ -218,10 +239,12 @@ exports.banUser = async (req, res, next) => {
             ? `Tu cuenta ha sido suspendida permanentemente. Motivo: ${banReason}`
             : `Tu cuenta ha sido suspendida hasta ${new Date(Date.now() + durationSeconds * 1000).toLocaleString('es-ES')}. Motivo: ${banReason}`;
 
+        const notificationTitle = '🚫 Cuenta Suspendida';
         await Notification.create({
             userId,
+            reportId,
             type: 'moderation_ban',
-            title: '🚫 Cuenta Suspendida',
+            title: notificationTitle,
             message: banMessage,
             priority: 'critical',
             data: {
@@ -232,6 +255,14 @@ exports.banUser = async (req, res, next) => {
                 durationSeconds: durationSeconds || 0
             }
         });
+
+        // Send Push Notification
+        sendPushNotification(
+            [userId],
+            notificationTitle,
+            banMessage,
+            { type: 'moderation_ban', reportId: reportId }
+        );
 
 
 

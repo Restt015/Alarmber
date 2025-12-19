@@ -1,4 +1,4 @@
-import { createContext, useCallback, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import notificationService from '../services/notificationService';
 import { useAuth } from './AuthContext';
 
@@ -163,6 +163,7 @@ export const NotificationProvider = ({ children }) => {
 };
 
 export const useNotifications = () => {
+    return useContext(NotificationContext);
 };
 
 export default NotificationContext;

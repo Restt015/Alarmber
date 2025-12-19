@@ -6,11 +6,27 @@ import PageHeader from '../../components/shared/PageHeader';
 import { useNotifications } from '../../context/NotificationContext';
 
 const NOTIFICATION_ICONS = {
+  // Report status changes
+  status_update: { name: 'swap-horizontal', color: '#FF9800', bg: '#FFF3E0' },
   accepted: { name: 'checkmark-circle', color: '#4CAF50', bg: '#E8F5E9' },
   review: { name: 'time', color: '#FF9800', bg: '#FFF3E0' },
   rejected: { name: 'close-circle', color: '#F44336', bg: '#FFEBEE' },
   updated: { name: 'refresh-circle', color: '#2196F3', bg: '#E3F2FD' },
+
+  // Messages and chat
+  new_message: { name: 'chatbubble-ellipses', color: '#2196F3', bg: '#E3F2FD' },
   comment: { name: 'chatbubble', color: '#9C27B0', bg: '#F3E5F5' },
+
+  // Admin actions
+  report_validated: { name: 'checkmark-done-circle', color: '#4CAF50', bg: '#E8F5E9' },
+  report_rejected: { name: 'close-circle', color: '#F44336', bg: '#FFEBEE' },
+
+  // Moderation
+  moderation_warning: { name: 'warning', color: '#FF9800', bg: '#FFF3E0' },
+  moderation_mute: { name: 'volume-mute', color: '#D32F2F', bg: '#FFEBEE' },
+  moderation_ban: { name: 'ban', color: '#D32F2F', bg: '#FFEBEE' },
+
+  // System
   system: { name: 'information-circle', color: '#607D8B', bg: '#ECEFF1' }
 };
 
@@ -87,16 +103,16 @@ function NotificationItem({ notification, onPress, onMarkAsRead }) {
 
 export default function NotificationsScreen() {
   const {
-    notifications,
-    unreadCount,
-    loading,
-    refreshing,
-    hasMore,
-    refresh,
-    loadMore,
-    markAsRead,
-    markAllAsRead
-  } = useNotifications();
+    notifications = [],
+    unreadCount = 0,
+    loading = false,
+    refreshing = false,
+    hasMore = false,
+    refresh = () => { },
+    loadMore = () => { },
+    markAsRead = () => { },
+    markAllAsRead = () => { }
+  } = useNotifications() || {};
 
   const handleNotificationPress = (notification) => {
     // Mark as read
@@ -104,9 +120,17 @@ export default function NotificationsScreen() {
       markAsRead(notification._id);
     }
 
-    // Navigate to report if available
+    // Navigate based on notification type
     if (notification.reportId?._id) {
-      router.push(`/alert/${notification.reportId._id}`);
+      const reportId = notification.reportId._id;
+
+      // For message notifications, navigate to chat
+      if (notification.type === 'new_message' || notification.type === 'comment') {
+        router.push(`/chat/${reportId}`);
+      } else {
+        // For other notifications, navigate to report detail
+        router.push(`/alert/${reportId}`);
+      }
     }
   };
 

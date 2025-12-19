@@ -1,5 +1,7 @@
 const Report = require('../models/Report');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
+const { sendPushNotification } = require('../services/pushService');
 
 // @desc    Get dashboard statistics
 // @route   GET /api/admin/dashboard/stats
@@ -174,6 +176,33 @@ exports.validateReport = async (req, res) => {
         await report.save();
 
         console.log('✅ Report validated and set to active:', report._id);
+
+        // Notify user about validation
+        if (report.reportedBy) {
+            const notificationTitle = 'Reporte Validado';
+            const notificationMessage = 'Tu reporte ha sido aprobado y ya es público.';
+
+            // 1. Create Notification in DB
+            await Notification.create({
+                userId: report.reportedBy,
+                reportId: report._id,
+                type: 'report_validated',
+                title: notificationTitle,
+                message: notificationMessage,
+                priority: 'normal',
+                data: {
+                    reportId: report._id
+                }
+            });
+
+            // 2. Send Push Notification
+            sendPushNotification(
+                [report.reportedBy],
+                notificationTitle,
+                notificationMessage,
+                { type: 'report_validated', reportId: report._id }
+            );
+        }
 
         res.status(200).json({
             success: true,
