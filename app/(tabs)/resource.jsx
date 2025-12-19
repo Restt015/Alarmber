@@ -48,10 +48,12 @@ const EMERGENCY_CONTACTS = [
 
 export default function ResourceScreen() {
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-[#F5F5F5]">
+      {/* Header */}
       <PageHeader
         title="Recursos de Ayuda"
         subtitle="Contactos de emergencia y soporte"
+        style={{ paddingBottom: 15 }}
       />
 
       <ScrollView
@@ -59,12 +61,23 @@ export default function ResourceScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
+        {/* Section Title */}
         <SectionTitle title="Números de Emergencia" />
 
+        {/* Emergency Contacts */}
         {EMERGENCY_CONTACTS.map((contact) => (
           <ContactCard
             key={contact.id}
             {...contact}
+            style={{
+              marginBottom: 15, // Add margin between cards
+              shadowColor: '#000',
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 3 },
+              elevation: 5, // Add shadow effect to create depth
+              borderRadius: 10, // Rounded corners for better visuals
+            }}
           />
         ))}
       </ScrollView>

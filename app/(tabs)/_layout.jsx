@@ -1,9 +1,25 @@
-// app/(tabs)/_layout.jsx
-import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Platform } from "react-native";
+import { Tabs, router } from "expo-router";
+import { Platform, StyleSheet, Text, View } from "react-native";
+import { useNotifications } from "../../context/NotificationContext";
+
+// Tab icon with optional badge
+function TabIconWithBadge({ name, color, badgeCount }) {
+  return (
+    <View style={{ width: 28, height: 28 }}>
+      <Ionicons name={name} size={22} color={color} />
+      {badgeCount > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{badgeCount > 99 ? '99+' : badgeCount}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function TabLayout() {
+  const { unreadCount = 0 } = useNotifications() || {};
+
   return (
     <Tabs
       screenOptions={{
@@ -43,7 +59,10 @@ export default function TabLayout() {
         options={{
           title: "Inicio",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="home-outline" size={22} color={color} />
+            <TabIconWithBadge
+              name="home-outline"
+              color={color}
+            />
           ),
         }}
       />
@@ -58,26 +77,32 @@ export default function TabLayout() {
         }}
       />
 
+      {/* CENTRAL + BUTTON */}
       <Tabs.Screen
-        name="notifications"
+        name="report-create"
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.push('/report/create');
+          }
+        }}
         options={{
-          title: "Notif.",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="notifications-outline" size={22} color={color} />
+          title: "",
+          tabBarIcon: () => (
+            <View style={styles.centralButton}>
+              <Ionicons name="add" size={28} color="white" />
+            </View>
           ),
+          tabBarLabel: () => null,
         }}
       />
 
       <Tabs.Screen
         name="resource"
         options={{
-          title: "Recursos",
+          title: "Contactos",
           tabBarIcon: ({ color }) => (
-            <Ionicons
-              name="information-circle-outline"
-              size={22}
-              color={color}
-            />
+            <Ionicons name="call-outline" size={22} color={color} />
           ),
         }}
       />
@@ -91,6 +116,60 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Hidden screens */}
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null, // Hidden (moved to header dropdown)
+        }}
+      />
+
+      <Tabs.Screen
+        name="my-reports"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  centralButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#D32F2F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -25,
+    shadowColor: '#D32F2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 4,
+    borderColor: '#fff'
+  },
+  badge: {
+    position: 'absolute',
+    right: -6,
+    top: -4,
+    backgroundColor: '#D32F2F',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#fff'
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700'
+  }
+});
+

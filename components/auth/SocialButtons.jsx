@@ -5,11 +5,11 @@ export default function SocialButtons() {
     return (
         <View className="mt-8 w-full">
             <View className="flex-row items-center mb-6">
-                <View className="flex-1 h-[1px] bg-gray-200" />
-                <Text className="mx-4 text-gray-400 text-[13px] font-medium">
+                <View className="flex-1 h-[1px] bg-white/20" />
+                <Text className="mx-4 text-white/60 text-[13px] font-medium">
                     O continúa con
                 </Text>
-                <View className="flex-1 h-[1px] bg-gray-200" />
+                <View className="flex-1 h-[1px] bg-white/20" />
             </View>
 
             <View className="flex-row justify-between gap-4">

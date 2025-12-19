@@ -1,18 +1,20 @@
 import { Image, Text, View } from 'react-native';
 
-export default function LoginHeader() {
+export default function LoginHeader({ textColor = "text-gray-900", subtitleColor = "text-gray-500" }) {
     return (
         <View className="mb-8 items-center">
-            <Image
-                source={require('../../assets/images/logo.png')}
-                className="w-32 h-32 mb-6"
-                resizeMode="contain"
-            />
-            <Text className="text-[28px] font-black text-gray-900 tracking-tight mb-2 text-center">
-                Bienvenido a Alarmber
+            <View className="bg-white p-4 rounded-full mb-6 elevation-4 shadow-sm">
+                <Image
+                    source={require('../../assets/images/logo.png')}
+                    className="w-20 h-20"
+                    resizeMode="contain"
+                />
+            </View>
+            <Text className={`text-[28px] font-black tracking-tight mb-2 text-center ${textColor}`}>
+                Bienvenido
             </Text>
-            <Text className="text-[16px] text-gray-500 leading-6 text-center px-4">
-                Tu seguridad y la de los tuyos es nuestra prioridad. Inicia sesión para continuar.
+            <Text className={`text-[16px] leading-6 text-center px-4 ${subtitleColor}`}>
+                Inicia sesión para continuar
             </Text>
         </View>
     );

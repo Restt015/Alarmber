@@ -1,139 +1,368 @@
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { Alert, FlatList, Image, TouchableOpacity, View } from 'react-native';
-import { Card, IconButton, Text } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-const mockPendingReports = [
-    { id: '101', name: 'Juanito Pérez', age: 10, location: 'Parque Central', time: 'Hace 30 min', photo: 'https://via.placeholder.com/150', status: 'Pendiente' },
-    { id: '102', name: 'Sra. Martha', age: 75, location: 'Mercado Municipal', time: 'Hace 1 hora', photo: 'https://via.placeholder.com/150', status: 'Pendiente' },
-    { id: '103', name: 'Desconocido', age: '30-40', location: 'Av. Reforma', time: 'Hace 2 horas', photo: 'https://via.placeholder.com/150', status: 'Pendiente' },
-];
-
-const AdminReportCard = ({ report, onApprove, onReject }) => (
-    <Card className="mx-5 mb-4 bg-surface shadow-sm border border-surfaceVariant" mode="elevated">
-        <Card.Content className="p-0">
-            <View className="flex-row p-3">
-                <Image source={{ uri: report.photo }} className="w-20 h-20 rounded-xl bg-surfaceVariant" />
-                <View className="flex-1 ml-3">
-                    <View className="flex-row justify-between items-start">
-                        <Text className="text-base font-bold text-text flex-1 mr-2">{report.name}</Text>
-                        <View className="bg-warning px-2 py-0.5 rounded">
-                            <Text className="text-[10px] font-bold text-text">PENDIENTE</Text>
-                        </View>
-                    </View>
-                    <Text className="text-sm text-textSecondary mt-1">Edad: {report.age}</Text>
-                    <Text className="text-xs text-textSecondary mt-1">{report.location}</Text>
-                    <Text className="text-xs text-textSecondary mt-1 font-medium">{report.time}</Text>
-                </View>
-            </View>
-
-            <View className="flex-row border-t border-surfaceVariant">
-                <TouchableOpacity
-                    onPress={() => onReject(report.id)}
-                    className="flex-1 py-3 items-center justify-center border-r border-surfaceVariant active:bg-surfaceVariant"
-                >
-                    <Text className="text-textSecondary font-bold">Rechazar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={() => onApprove(report.id)}
-                    className="flex-1 py-3 items-center justify-center active:bg-surfaceVariant"
-                >
-                    <Text className="text-primary font-bold">Validar & Publicar</Text>
-                </TouchableOpacity>
-            </View>
-        </Card.Content>
-    </Card>
-);
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import AdminHeader from '../../components/admin/AdminHeader';
+import DashboardStatCard from '../../components/admin/DashboardStatCard';
+import ReportListItem from '../../components/admin/ReportListItem';
+import ErrorState from '../../components/shared/ErrorState';
+import SkeletonCard from '../../components/shared/SkeletonCard';
+import { SkeletonStatRow } from '../../components/shared/SkeletonStatCard';
+import { useAuth } from '../../context/AuthContext';
+import adminService from '../../services/adminService';
 
 export default function AdminDashboard() {
-    const [reports, setReports] = useState(mockPendingReports);
+    const { user, isAuthenticated } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState(null);
+    const [stats, setStats] = useState(null);
+    const [pendingReports, setPendingReports] = useState([]);
 
-    const handleApprove = (id) => {
-        Alert.alert(
-            'Confirmar Validación',
-            '¿Estás seguro de que deseas validar y publicar este reporte?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Publicar',
-                    onPress: () => {
-                        setReports(reports.filter(r => r.id !== id));
-                        // In a real app, this would make an API call
-                    }
-                }
-            ]
-        );
+    // Load dashboard data
+    const loadDashboardData = async () => {
+        try {
+            setError(null);
+            const [statsData, reportsData] = await Promise.all([
+                adminService.getDashboardStats(),
+                adminService.getAllReports({ validated: false, limit: 5 })
+            ]);
+
+            setStats(statsData.data);
+            setPendingReports(reportsData.data || []);
+        } catch (err) {
+            console.error('Error loading dashboard:', err);
+            setError(err.message || 'Error al cargar el dashboard');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
     };
 
-    const handleReject = (id) => {
-        Alert.alert(
-            'Rechazar Reporte',
-            '¿Estás seguro de que deseas rechazar este reporte?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Rechazar',
-                    style: 'destructive',
-                    onPress: () => {
-                        setReports(reports.filter(r => r.id !== id));
-                    }
-                }
-            ]
-        );
+    useEffect(() => {
+        if (isAuthenticated && user?.role === 'admin') {
+            loadDashboardData();
+        }
+    }, [isAuthenticated, user]);
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        loadDashboardData();
     };
+
+    const handleValidateReport = async (reportId) => {
+        try {
+            await adminService.validateReport(reportId);
+            loadDashboardData();
+        } catch (error) {
+            console.error('Error validating report:', error);
+        }
+    };
+
+    if (loading) {
+        return (
+            <View className="flex-1 bg-gray-50">
+                <AdminHeader title="Dashboard" />
+                <View className="px-5 pt-6">
+                    {/* Welcome skeleton */}
+                    <View className="h-4 bg-gray-200 rounded w-32 mb-2 animate-pulse" />
+                    <View className="h-7 bg-gray-200 rounded w-48 mb-6 animate-pulse" />
+                    {/* Stat cards skeleton */}
+                    <SkeletonStatRow />
+                    <SkeletonStatRow />
+                    {/* Report cards skeleton */}
+                    <View className="mt-4">
+                        <View className="h-5 bg-gray-200 rounded w-32 mb-3 animate-pulse" />
+                        <SkeletonCard />
+                        <SkeletonCard />
+                    </View>
+                </View>
+            </View>
+        );
+    }
+
+    // Error state
+    if (error && !stats) {
+        return (
+            <View className="flex-1 bg-gray-50">
+                <AdminHeader title="Dashboard" />
+                <ErrorState
+                    title="Error al cargar dashboard"
+                    message={error}
+                    onRetry={loadDashboardData}
+                />
+            </View>
+        );
+    }
+
+    if (!isAuthenticated || user?.role !== 'admin') {
+        return null;
+    }
 
     return (
-        <SafeAreaView className="flex-1 bg-background">
-            <View className="px-5 py-3 border-b border-surfaceVariant bg-surface flex-row items-center justify-between">
-                <View>
-                    <Text variant="titleLarge" className="font-bold text-text">Panel de Admin</Text>
-                    <Text variant="bodySmall" className="text-textSecondary">Gestión de Reportes</Text>
-                </View>
-                <IconButton icon="logout" size={24} iconColor="#757575" onPress={() => router.replace('/(tabs)')} />
-            </View>
+        <View className="flex-1 bg-gray-50">
+            <AdminHeader title="Dashboard" />
 
-            <View className="px-5 py-4">
-                <View className="flex-row gap-3 mb-2">
-                    <Card className="flex-1 bg-surface border border-surfaceVariant p-3 items-center">
-                        <Text variant="displaySmall" className="font-bold text-warning mb-1">{reports.length}</Text>
-                        <Text variant="labelSmall" className="text-textSecondary text-center">Pendientes</Text>
-                    </Card>
-                    <Card className="flex-1 bg-surface border border-surfaceVariant p-3 items-center">
-                        <Text variant="displaySmall" className="font-bold text-primary mb-1">12</Text>
-                        <Text variant="labelSmall" className="text-textSecondary text-center">Urgentes</Text>
-                    </Card>
-                    <Card className="flex-1 bg-surface border border-surfaceVariant p-3 items-center">
-                        <Text variant="displaySmall" className="font-bold text-green-600 mb-1">45</Text>
-                        <Text variant="labelSmall" className="text-textSecondary text-center">Resueltos</Text>
-                    </Card>
-                </View>
-            </View>
-
-            <View className="px-5 mb-2">
-                <Text variant="titleMedium" className="font-bold text-text">Reportes por Validar</Text>
-            </View>
-
-            <FlatList
-                data={reports}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <AdminReportCard
-                        report={item}
-                        onApprove={handleApprove}
-                        onReject={handleReject}
-                    />
-                )}
-                contentContainerStyle={{ paddingBottom: 20 }}
+            <ScrollView
+                className="flex-1"
                 showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    <View className="items-center justify-center mt-10 px-10">
-                        <Ionicons name="checkmark-done-circle-outline" size={64} color="#E0E0E0" />
-                        <Text className="text-textSecondary text-center mt-4">¡Todo al día! No hay reportes pendientes de validación.</Text>
-                    </View>
+                contentContainerStyle={{ paddingBottom: 100 }}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        colors={['#9C27B0']}
+                        tintColor="#9C27B0"
+                    />
                 }
-            />
-        </SafeAreaView>
+            >
+                {/* Welcome Section */}
+                <View className="px-5 pt-4 pb-2">
+                    <Text className="text-gray-500 text-[13px] mb-1">
+                        Bienvenido de nuevo,
+                    </Text>
+                    <Text className="text-[26px] font-black text-gray-900">
+                        {user?.name || 'Administrador'}
+                    </Text>
+                </View>
+
+                {/* Main Stats Grid - 2x2 */}
+                <View className="px-5 mt-4">
+                    <View className="flex-row mb-3">
+                        <View className="flex-1 mr-2">
+                            <DashboardStatCard
+                                icon="checkmark-circle"
+                                title="Activos"
+                                count={stats?.activeReports || 0}
+                                subtitle="En búsqueda"
+                                color="#4CAF50"
+                                onPress={() => router.push('/admin/reports?filter=active')}
+                            />
+                        </View>
+                        <View className="flex-1 ml-2">
+                            <DashboardStatCard
+                                icon="time"
+                                title="Seguimiento"
+                                count={stats?.needFollowUp || 0}
+                                subtitle="+7 días activos"
+                                color="#FF9800"
+                                onPress={() => router.push('/admin/reports?filter=followup')}
+                            />
+                        </View>
+                    </View>
+
+                    <View className="flex-row mb-3">
+                        <View className="flex-1 mr-2">
+                            <DashboardStatCard
+                                icon="alert-circle"
+                                title="Pendientes"
+                                count={stats?.pendingValidation || 0}
+                                subtitle="Sin validar"
+                                color="#F44336"
+                                badge={stats?.pendingValidation > 0 ? { text: 'Requiere atención', type: 'error' } : null}
+                                onPress={() => router.push('/admin/reports?filter=pending')}
+                            />
+                        </View>
+                        <View className="flex-1 ml-2">
+                            <DashboardStatCard
+                                icon="checkmark-done-circle"
+                                title="Cerrados"
+                                count={stats?.recentlyClosed || 0}
+                                subtitle="Últimos 7 días"
+                                color="#757575"
+                                onPress={() => router.push('/admin/reports?filter=closed')}
+                            />
+                        </View>
+                    </View>
+                </View>
+
+                {/* Quick Access Section */}
+                <View className="px-5 mt-2 mb-4">
+                    <Text className="text-[18px] font-bold text-gray-900 mb-3">
+                        Acceso Rápido
+                    </Text>
+
+                    {/* Row 1: Validación + Noticias */}
+                    <View className="flex-row mb-3">
+                        {/* Validation Queue Card */}
+                        <TouchableOpacity
+                            onPress={() => router.push('/admin/validation')}
+                            className="flex-1 rounded-2xl p-4 mr-2"
+                            style={{
+                                backgroundColor: '#D32F2F',
+                                shadowColor: '#D32F2F',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 8,
+                                elevation: 8
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <View className="flex-row items-center justify-between mb-3">
+                                <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center">
+                                    <Ionicons name="hourglass" size={24} color="white" />
+                                </View>
+                                {stats?.pendingValidation > 0 && (
+                                    <View className="bg-white px-2 py-1 rounded-full">
+                                        <Text className="text-red-600 font-bold text-[12px]">{stats.pendingValidation}</Text>
+                                    </View>
+                                )}
+                            </View>
+                            <Text className="text-white font-bold text-[16px] mb-1">
+                                Validación
+                            </Text>
+                            <Text className="text-white/80 text-[12px]">
+                                Cola de aprobación
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* News Card */}
+                        <TouchableOpacity
+                            onPress={() => router.push('/admin/news')}
+                            className="flex-1 rounded-2xl p-4 ml-2"
+                            style={{
+                                backgroundColor: '#FF9800',
+                                shadowColor: '#FF9800',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 8,
+                                elevation: 8
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <View className="flex-row items-center justify-between mb-3">
+                                <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center">
+                                    <Ionicons name="newspaper" size={24} color="white" />
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="white" />
+                            </View>
+                            <Text className="text-white font-bold text-[16px] mb-1">
+                                Noticias
+                            </Text>
+                            <Text className="text-white/80 text-[12px]">
+                                Publicar alertas
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Row 2: Usuarios + Finalizados */}
+                    <View className="flex-row">
+                        {/* Users Card */}
+                        <TouchableOpacity
+                            onPress={() => router.push('/admin/users')}
+                            className="flex-1 rounded-2xl p-4 mr-2"
+                            style={{
+                                backgroundColor: '#1976D2',
+                                shadowColor: '#1976D2',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 8,
+                                elevation: 8
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <View className="flex-row items-center justify-between mb-3">
+                                <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center">
+                                    <Ionicons name="people" size={24} color="white" />
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="white" />
+                            </View>
+                            <Text className="text-white font-bold text-[16px] mb-1">
+                                Usuarios
+                            </Text>
+                            <Text className="text-white/80 text-[12px]">
+                                {stats?.totalUsers || 0} registrados
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Finished Reports Card */}
+                        <TouchableOpacity
+                            onPress={() => router.push('/admin/reports/finished')}
+                            className="flex-1 rounded-2xl p-4 ml-2"
+                            style={{
+                                backgroundColor: '#4CAF50',
+                                shadowColor: '#4CAF50',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 8,
+                                elevation: 8
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <View className="flex-row items-center justify-between mb-3">
+                                <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center">
+                                    <Ionicons name="checkmark-done" size={24} color="white" />
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="white" />
+                            </View>
+                            <Text className="text-white font-bold text-[16px] mb-1">
+                                Finalizados
+                            </Text>
+                            <Text className="text-white/80 text-[12px]">
+                                Ver historial
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Pending Validation Queue */}
+                <View className="px-5 mb-4">
+                    <View className="bg-white rounded-2xl border border-red-100 overflow-hidden shadow-sm">
+                        {/* Header with gradient */}
+                        <View
+                            className="p-4 border-b border-red-100"
+                            style={{ backgroundColor: '#FFF5F5' }}
+                        >
+                            <View className="flex-row items-center justify-between">
+                                <View className="flex-row items-center flex-1">
+                                    <View className="w-10 h-10 bg-red-100 rounded-full items-center justify-center mr-3">
+                                        <Ionicons name="alert" size={20} color="#F44336" />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-[16px] font-bold text-gray-900">
+                                            Cola de Validación
+                                        </Text>
+                                        <Text className="text-[12px] text-gray-500 mt-0.5">
+                                            Reportes esperando aprobación
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity
+                                    onPress={() => router.push('/admin/reports?filter=pending')}
+                                    className="bg-red-600 px-4 py-2 rounded-full"
+                                >
+                                    <Text className="text-white text-[12px] font-bold">
+                                        Ver todos
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* Reports List */}
+                        <View className="p-4">
+                            {pendingReports.length > 0 ? (
+                                pendingReports.map((report) => (
+                                    <ReportListItem
+                                        key={report._id}
+                                        report={report}
+                                        onPress={() => router.push(`/admin/reports/${report._id}`)}
+                                        onValidate={handleValidateReport}
+                                        showActions={true}
+                                    />
+                                ))
+                            ) : (
+                                <View className="py-8 items-center">
+                                    <Ionicons name="checkmark-circle-outline" size={48} color="#4CAF50" />
+                                    <Text className="text-gray-400 text-[14px] mt-2">
+                                        ¡Todo validado!
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                </View>
+            </ScrollView>
+        </View>
     );
 }

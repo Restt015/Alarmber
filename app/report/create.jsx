@@ -14,6 +14,7 @@ import { Button } from "react-native-paper";
 import PhotoUploader from '../../components/reports/PhotoUploader';
 import ReportForm from '../../components/reports/ReportForm';
 import PageHeader from '../../components/shared/PageHeader';
+import reportService from '../../services/reportService';
 
 export default function CreateReportScreen() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function CreateReportScreen() {
     description: "",
     clothing: "",
     circumstances: "",
+    relationship: "",
   });
 
   const [photo, setPhoto] = useState(null);
@@ -52,15 +54,17 @@ export default function CreateReportScreen() {
   };
 
   const validateForm = () => {
+    if (!formData.relationship) return "Por favor selecciona tu relación con la persona";
     if (!formData.name.trim()) return "El nombre es requerido";
     if (!formData.age.trim()) return "La edad es requerida";
     if (!formData.lastLocation.trim()) return "La última ubicación es requerida";
     if (!formData.description.trim()) return "La descripción física es requerida";
+    if (!formData.clothing.trim()) return "La descripción de vestimenta es requerida";
     if (!photo) return "La fotografía es obligatoria";
     return null;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const error = validateForm();
     if (error) {
       Alert.alert("Campos incompletos", error);
@@ -68,10 +72,29 @@ export default function CreateReportScreen() {
     }
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await reportService.createReport({
+        ...formData,
+        photo
+      });
+
+      Alert.alert(
+        "¡Reporte Enviado!",
+        "Tu reporte ha sido enviado y está pendiente de validación por un administrador. Te notificaremos cuando sea aprobado y visible públicamente.",
+        [{
+          text: 'Entendido',
+          onPress: () => router.replace('/(tabs)')
+        }]
+      );
+    } catch (error) {
+      console.error('Error creating report:', error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "No se pudo enviar el reporte. Por favor intenta de nuevo."
+      );
+    } finally {
       setLoading(false);
-      router.push("/report/success");
-    }, 1500);
+    }
   };
 
   return (
@@ -108,6 +131,7 @@ export default function CreateReportScreen() {
             mode="contained"
             onPress={handleSubmit}
             loading={loading}
+            disabled={loading}
             buttonColor="#D32F2F"
             className="rounded-2xl py-2 mt-4 shadow-md"
             labelStyle={{ fontSize: 17, fontWeight: "700", letterSpacing: 0.5 }}
